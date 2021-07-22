@@ -1,0 +1,52 @@
+{
+    "folders": [
+        {
+            "path": ".",
+            "folder_exclude_patterns": ["build", ".vs"],
+        },
+        // {
+        //     "name": "win32 includes",
+        //     "path": "C:\\Program Files (x86)\\Windows Kits\\10\\Include\\10.0.18362.0"
+        // },
+        // {
+        //     "name": "win32 source",
+        //     "path": "C:\\Program Files (x86)\\Windows Kits\\10\\Source\\10.0.18362.0"
+        // },
+        // {
+        //     "name": "win32 crt includes",
+        //     "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\14.26.28801\\include"
+        // },
+        // {
+        //     "name": "win32 crt source",
+        //     "path": "C:\\Program Files (x86)\\Microsoft Visual Studio\\2019\\Community\\VC\\Tools\\MSVC\\14.26.28801\\crt\\src\\"
+        // },
+        // {
+        //     "name": "/usr/include/c++/9",
+        //     "path": "\\\\wsl$\\Ubuntu-20.04\\usr\\include\\c++\\9",
+        // },
+        // {
+        //     "name": "/usr/include/x86_64-linux-gnu/c++/9",
+        //     "path": "\\\\wsl$\\Ubuntu-20.04\\usr\\include\\x86_64-linux-gnu\\c++\\9",
+        // },
+        // {
+        //     "name": "/usr/inclut/c++/9/backward",
+        //     "path": "\\\\wsl$\\Ubuntu-20.04\\usr\\include\\c++\\9\\backward",
+        // },
+        // {
+        //     "name": "/usr/lib/gcc/x86_64-linux-gnu/9/include",
+        //     "path": "\\\\wsl$\\Ubuntu-20.04\\usr\\lib\\gcc\\x86_64-linux-gnu\\9\\include",
+        // },
+        // {
+        //     "name": "/usr/local/include",
+        //     "path": "\\\\wsl$\\Ubuntu-20.04\\usr\\local\\include",
+        // },
+        // {
+        //     "name": "/usr/include/x86_64-linux-gnu",
+        //     "path": "\\\\wsl$\\Ubuntu-20.04\\usr\\include\\x86_64-linux-gnu",
+        // },
+        // {
+        //     "name": "/usr/include",
+        //     "path": "\\\\wsl$\\Ubuntu-20.04\\usr\\include",
+        // },
+    ]
+}

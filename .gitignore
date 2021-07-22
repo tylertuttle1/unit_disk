@@ -1,0 +1,5 @@
+.vs/
+build/
+
+notes.txt
+*.sublime-workspace
