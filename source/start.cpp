@@ -63,11 +63,30 @@ sin_f32(float value)
     return result;
 }
 
-#define POINT_COUNT 20
-global f32 scale = 1.5f;
+#define POINT_COUNT 1000
+global f32 scale = 10.0f;
 global f32 scale_x = scale;
 global f32 scale_y = scale;
 // global char ttf_buffer[1<<25];
+global u32 colours[] = {
+    0xffff0000,
+    0xff0000ff,
+    0xff00ff00,
+    0xffffff00,
+    0xff00ffff,
+    0xffff00ff,
+    0xffbada55,
+    0xffff7f7f,
+    0xff7fff7f,
+    0xff7f7fff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+    0xffffffff,
+};
 
 void
 draw_edges(Image *image, Graph *graph, u32 colour)
@@ -114,6 +133,82 @@ draw_points(Image *image, v2 *points, int point_count, u32 colour)
     }
 }
 
+
+global int pad = 30;
+global int hgap = 20;
+global int vgap = 20;
+
+void
+calculate_widths(CentroidTree *tree, int node_index, int *widths)
+{
+    CentroidTreeNode *node = &tree->nodes[node_index];
+
+    if (node->point == -1) {
+        // this is an internal node
+        calculate_widths(tree, node->left, widths);
+        calculate_widths(tree, node->right, widths);
+        widths[node_index] = widths[node->left] + widths[node->right] + hgap;
+    } else {
+        widths[node_index] = 0;
+    }
+}
+
+void
+draw_centroid_tree_internal(CentroidTree *tree, int node_index, Image *image, int *widths, int offset_x, int offset_y, int depth)
+{
+    CentroidTreeNode *node = &tree->nodes[node_index];
+
+    int x = offset_x + widths[node_index] / 2;
+    int y = offset_y;
+
+    if (node->point == -1) {
+        int left_width = widths[node->left];
+
+        int left_x = offset_x + widths[node->left] / 2;
+        int left_y = offset_y + vgap;
+
+        draw_line(image, x, y, left_x, left_y, 0xffffffff);
+
+        int right_x = offset_x + left_width + hgap + widths[node->right] / 2;
+        int right_y = offset_y + vgap;
+
+        draw_line(image, x, y, right_x, right_y, 0xffffffff);
+
+        draw_centroid_tree_internal(tree, node->left, image, widths, offset_x, offset_y + vgap, depth + 1);
+        draw_centroid_tree_internal(tree, node->right, image, widths, offset_x + left_width + hgap, offset_y + vgap, depth + 1);
+    }
+
+    int min_x = x - 2;
+    int max_x = x + 2;
+    int min_y = y - 2;
+    int max_y = y + 2;
+
+    u32 colour = (node->point == -1) ? colours[depth] : 0xffff0000;
+    draw_rectangle(image, min_x, min_y, max_x, max_y, colour);
+}
+
+Image
+draw_centroid_tree(CentroidTree *tree)
+{
+    // first we need to compute the required image size
+    // the height is height(tree)*vgap + 2*pad
+    // the width is width(root) + 2*pad,
+    // where width(root) = width(root.left) + width(root.right) + hgap
+
+    int height_needed = vgap*tree->height + 2*pad;
+    int *widths = (int *) allocate_memory(tree->node_count * sizeof(int));
+
+    calculate_widths(tree, 0, widths);
+
+    int width_needed = widths[0] + 2*pad;
+
+    Image result = create_image(width_needed, height_needed);
+
+    draw_centroid_tree_internal(tree, 0, &result, widths, pad, pad, 0);
+
+    return result;
+}
+ 
 int
 start(void)
 {
@@ -126,7 +221,8 @@ start(void)
         points[i].y = scale_y * random_f32(&rng);
     }
 
-    Image image = create_image(512, 512);
+    Image image1 = create_image(512, 512);
+    Image image2 = create_image(512, 512);
 
     u64 freq = get_clock_frequency();
     u64 A = get_clock();
@@ -139,15 +235,61 @@ start(void)
 
     u64 C = get_clock();
 
-    draw_edges(&image, &graph, 0xff333333);
-    draw_edges(&image, &mst, 0xff00ff00);
-    draw_points(&image, points, POINT_COUNT, 0xff0000ff);
-
-    Edge centroid_edge = find_centroid_edge(&mst, 0);
+    draw_edges(&image1, &graph, 0xff333333);
+    draw_edges(&image1, &mst, 0xff00ff00);
+    draw_points(&image1, points, POINT_COUNT, 0xff0000ff);
 
     u64 D = get_clock();
 
     CentroidTree centroid_tree = build_centroid_tree(&mst);
+    draw_edges(&image2, &graph, 0xff333333);
+
+    int queue[2*POINT_COUNT - 1] = {};
+    int index;
+    int colour_index = 0;
+    int head = 0;
+    int tail = 0;
+    int one_past_last_index_on_current_level = 0;
+
+    queue[tail++] = 0;
+    one_past_last_index_on_current_level = tail;
+
+    while (head < tail) {
+        index = queue[head++];
+
+        if (head > one_past_last_index_on_current_level) {
+            one_past_last_index_on_current_level = tail;
+            ++colour_index;
+        }
+
+        if (colour_index == 3) {
+            int y = 3;
+        }
+
+        CentroidTreeNode node = centroid_tree.nodes[index];
+
+        v2 p = node.edge.p;
+        v2 q = node.edge.q;
+
+        int x0 = image2.width * p.x / scale_x;
+        int y0 = image2.height * (scale_y - p.y) / scale_y;
+
+        int x1 = image2.width * q.x / scale_x;
+        int y1 = image2.height * (scale_y - q.y) / scale_y;
+
+        draw_line(&image2, x0, y0, x1, y1, colours[colour_index % arraycount(colours)]);
+
+        // @NOTE: if node is internal
+        if (node.point == -1) {
+            queue[tail++] = node.left;
+            queue[tail++] = node.right;
+        }
+    }
+
+    draw_points(&image2, points, POINT_COUNT, 0xff0000ff);
+
+    Image tree_image = draw_centroid_tree(&centroid_tree);
+    save_image(tree_image, "tree.bmp");
 
     u64 E = get_clock();
 
@@ -156,7 +298,8 @@ start(void)
     printf("time to build centroid tree: %f ms\n", milliseconds(D, E, freq));
     printf("time to draw graph: %f ms\n", milliseconds(C, D, freq));
 
-    save_image(image, "out.bmp");
+    save_image(image1, "out_mst.bmp");
+    save_image(image2, "out.bmp");
 
 #if 0
     // @TODO: make this into a function that we can call to draw text.

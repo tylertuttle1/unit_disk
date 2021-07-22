@@ -12,6 +12,8 @@ struct CentroidTreeNode
     int left;
     int right;
 
+    int height;
+
     // if this node is not a leaf, this is
     // the edge that this node represents
     Edge edge;
@@ -25,6 +27,8 @@ struct CentroidTree
 {
     // underlying tree?
     Graph *graph;
+
+    int height;
 
     size_t max_node_count;
     int node_count;
@@ -70,7 +74,7 @@ find_centroid_edge(Graph *tree, int root)
     }
 
     int total_size = sizes[root];
-    int min_threshold = total_size / 7;
+    int min_threshold = (total_size + 6) / 7; // ceil(total_size / 7)
     int max_threshold = 6 * total_size / 7;
 
     int parent_id = -1;
@@ -90,6 +94,9 @@ find_centroid_edge(Graph *tree, int root)
 
                     result.pi = current_vertex;
                     result.qi = neighbour_id;
+
+                    result.p = tree->points[current_vertex];
+                    result.q = tree->points[neighbour_id];
 
                     return result;
                 }
@@ -114,7 +121,7 @@ build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
 {
     int node_index = tree->node_count;
     CentroidTreeNode *result = &tree->nodes[node_index];
-    assert(tree->node_count <= tree->max_node_count);
+    assert(tree->node_count < tree->max_node_count);
     ++tree->node_count;
 
     if (is_single_vertex(tree->graph, start_vertex)) {
@@ -122,6 +129,7 @@ build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
         result->right = 0;
         result->edge = {};
         result->point = start_vertex;
+        result->height = 0;
     } else {
         Edge centroid_edge = find_centroid_edge(tree->graph, start_vertex);
         remove_edge(tree->graph, centroid_edge.pi, centroid_edge.qi);
@@ -130,6 +138,7 @@ build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
         result->right = build_centroid_tree_internal(tree, centroid_edge.qi);
         result->edge = centroid_edge;
         result->point = -1;
+        result->height = 1 + max(tree->nodes[result->left].height, tree->nodes[result->right].height);
     }
 
     return node_index;
@@ -151,6 +160,8 @@ build_centroid_tree(Graph *mst)
     result.nodes = (CentroidTreeNode *) allocate_memory(size);
 
     build_centroid_tree_internal(&result, 0);
+
+    result.height = result.nodes[0].height;
 
     return result;
 }

@@ -14,9 +14,10 @@ pushd build
 
 cl %ccflags% ..\source\win32_main.cpp /Fe:%exename%.exe /link %ldflags% %libs%
 
-rem if %errorlevel% neq 0 goto :end
-rem %exename%.exe
-rem start out.bmp
-rem :end
+if %errorlevel% neq 0 goto :end
+%exename%.exe
+rem start tree.bmp
+start out.bmp
+:end
 
 popd
