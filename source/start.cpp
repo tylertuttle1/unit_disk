@@ -63,8 +63,8 @@ sin_f32(float value)
     return result;
 }
 
-#define POINT_COUNT 1000
-global f32 scale = 10.0f;
+#define POINT_COUNT 25
+global f32 scale = 3.0f;
 global f32 scale_x = scale;
 global f32 scale_y = scale;
 // global char ttf_buffer[1<<25];
@@ -87,6 +87,7 @@ global u32 colours[] = {
     0xffffffff,
     0xffffffff,
 };
+
 
 void
 draw_edges(Image *image, Graph *graph, u32 colour)
@@ -213,7 +214,7 @@ int
 start(void)
 {
     RNG rng;
-    seed_rng(&rng, 69, 421);
+    seed_rng(&rng, 123123, 123123);
 
     v2 points[POINT_COUNT] = {};
     for (int i = 0; i < POINT_COUNT; ++i) {

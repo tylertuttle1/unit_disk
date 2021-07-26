@@ -214,10 +214,14 @@ save_image(Image image, char const *filename)
 
     // @TODO: file api in the platform layer?
     FILE *fp = fopen(filename, "wb");
-    fwrite(&output_file_header, sizeof(BitmapFileHeader), 1, fp);
-    fwrite(&output_header, sizeof(BitmapHeader), 1, fp);
-    fwrite(image.pixels, image.size_in_bytes, 1, fp);
-    fclose(fp);
+    if (fp) {
+        fwrite(&output_file_header, sizeof(BitmapFileHeader), 1, fp);
+        fwrite(&output_header, sizeof(BitmapHeader), 1, fp);
+        fwrite(image.pixels, image.size_in_bytes, 1, fp);
+        fclose(fp);
+    } else {
+        fprintf(stdout, "cannot open file %s for writing!\n", filename);
+    }
 }
 
 void

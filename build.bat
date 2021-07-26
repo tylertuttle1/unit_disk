@@ -16,7 +16,7 @@ cl %ccflags% ..\source\win32_main.cpp /Fe:%exename%.exe /link %ldflags% %libs%
 
 if %errorlevel% neq 0 goto :end
 %exename%.exe
-rem start tree.bmp
+start tree.bmp
 start out.bmp
 :end
 
