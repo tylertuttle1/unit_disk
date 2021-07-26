@@ -33,8 +33,8 @@ hash_pair(s32 ix, s32 iy)
     return result;
 }
 
-#define POINT_COUNT 30
-global f32 scale = 1.5f;
+#define POINT_COUNT 250
+global f32 scale = 10.0f;
 global f32 scale_x = scale;
 global f32 scale_y = scale;
 // global char ttf_buffer[1<<25];
@@ -262,7 +262,11 @@ start(void)
     Image tree_image = draw_centroid_tree(&centroid_tree);
     save_image(tree_image, "tree.bmp");
 
-    WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 2.0f);
+    WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 0.05);
+    for (int i = 0; i < wspd.pair_count; ++i) {
+        WellSeparatedPair pair = wspd.pairs[i];
+        printf("[%d] (%d, %d)\n", i, pair.a, pair.b);
+    }
 
     u64 E = get_clock();
 
