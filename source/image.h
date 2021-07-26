@@ -227,6 +227,11 @@ save_image(Image image, char const *filename)
 void
 draw_line(Image *image, int x0, int y0, int x1, int y1, u32 colour)
 {
+    assert((0 <= x0) && (x0 < image->width));
+    assert((0 <= x1) && (x1 < image->width));
+    assert((0 <= y0) && (y0 < image->height));
+    assert((0 <= y1) && (y1 < image->height));
+
     bool is_steep = false;
     if (abs(x0 - x1) < abs(y0 - y1)) {
         is_steep = true;

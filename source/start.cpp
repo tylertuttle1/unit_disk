@@ -213,6 +213,10 @@ start(void)
     u64 D = get_clock();
 
     CentroidTree centroid_tree = build_centroid_tree(&mst);
+    for (int i = 0; i < centroid_tree.node_count; ++i) {
+        assert(centroid_tree.nodes[i].left >= 0);
+        assert(centroid_tree.nodes[i].right >= 0);
+    }
     draw_edges(&image2, &graph, 0xff333333);
 
     int queue[2*POINT_COUNT - 1] = {};
@@ -243,10 +247,10 @@ start(void)
         v2 q = node.edge.q;
 
         int x0 = image2.width * p.x / scale_x;
-        int y0 = image2.height * (scale_y - p.y) / scale_y;
+        int y0 = (image2.height - 1) * (scale_y - p.y) / scale_y;
 
         int x1 = image2.width * q.x / scale_x;
-        int y1 = image2.height * (scale_y - q.y) / scale_y;
+        int y1 = (image2.height - 1) * (scale_y - q.y) / scale_y;
 
         draw_line(&image2, x0, y0, x1, y1, colours[colour_index % arraycount(colours)]);
 
@@ -259,14 +263,18 @@ start(void)
 
     draw_points(&image2, points, POINT_COUNT, 0xff0000ff);
 
+    for (int i = 0; i < centroid_tree.node_count; ++i) {
+        assert(centroid_tree.nodes[i].left >= 0);
+        assert(centroid_tree.nodes[i].right >= 0);
+    }
     Image tree_image = draw_centroid_tree(&centroid_tree);
     save_image(tree_image, "tree.bmp");
 
     WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 0.05);
-    for (int i = 0; i < wspd.pair_count; ++i) {
-        WellSeparatedPair pair = wspd.pairs[i];
-        printf("[%d] (%d, %d)\n", i, pair.a, pair.b);
-    }
+    // for (int i = 0; i < wspd.pair_count; ++i) {
+    //     WellSeparatedPair pair = wspd.pairs[i];
+    //     printf("[%d] (%d, %d)\n", i, pair.a, pair.b);
+    // }
 
     u64 E = get_clock();
 

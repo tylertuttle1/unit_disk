@@ -150,6 +150,10 @@ build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
         result->height = 1 + max(tree->nodes[result->left].height, tree->nodes[result->right].height);
     }
 
+    // @TODO sometimes these values seem to be negative. why?
+    assert(result->left  >= 0);
+    assert(result->right >= 0);
+    assert(node_index >= 0);
     return node_index;
 }
 
