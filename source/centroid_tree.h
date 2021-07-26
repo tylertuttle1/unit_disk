@@ -19,8 +19,13 @@ struct CentroidTreeNode
     Edge edge;
 
     // if this node is a leaf, this is the index
-    // of the point that it is storing.
+    // of the point that it is storing. otherwise
+    // it's set to -1
     int point;
+
+    // these are for constructing the wspd
+    int size;
+    int representative;
 };
 
 struct CentroidTree
@@ -129,6 +134,8 @@ build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
         result->right = 0;
         result->edge = {};
         result->point = start_vertex;
+        result->representative = start_vertex;
+        result->size = 1;
         result->height = 0;
     } else {
         Edge centroid_edge = find_centroid_edge(tree->graph, start_vertex);
@@ -138,6 +145,8 @@ build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
         result->right = build_centroid_tree_internal(tree, centroid_edge.qi);
         result->edge = centroid_edge;
         result->point = -1;
+        result->representative = tree->nodes[result->left].representative;
+        result->size = tree->nodes[result->left].size + tree->nodes[result->right].size;
         result->height = 1 + max(tree->nodes[result->left].height, tree->nodes[result->right].height);
     }
 

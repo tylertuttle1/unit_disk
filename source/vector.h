@@ -1,6 +1,7 @@
 #if !defined(VECTOR_H)
 
 #include "basic.h"
+#include "f32_math.h"
 
 union v2
 {
@@ -161,9 +162,23 @@ operator-(v2 a, v2 b)
 }
 
 f32
+length(v2 a)
+{
+    f32 result = sqrt_f32(a.x*a.x + a.y*a.y);
+    return result;
+}
+
+f32
 length_squared(v2 a)
 {
     f32 result = a.x*a.x + a.y*a.y;
+    return result;
+}
+
+f32
+distance(v2 a, v2 b)
+{
+    f32 result = length(b - a);
     return result;
 }
 

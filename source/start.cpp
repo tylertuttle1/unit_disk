@@ -19,9 +19,7 @@
 #include "image.h"
 #include "rng.h"
 #include "centroid_tree.h"
-
-#define USE_SSE2
-#include "sse_mathfun.h"
+#include "wspd.h"
 
 u64
 hash_pair(s32 ix, s32 iy)
@@ -35,36 +33,8 @@ hash_pair(s32 ix, s32 iy)
     return result;
 }
 
-f32
-floor_f32(f32 value)
-{
-    f32 result = _mm_cvtss_f32(_mm_floor_ps(_mm_set_ss(value)));
-    return result;
-}
-
-f32
-ceil_f32(f32 value)
-{
-    f32 result = _mm_cvtss_f32(_mm_ceil_ps(_mm_set_ss(value)));
-    return result;
-}
-
-f32
-sqrt_f32(f32 value)
-{
-    f32 result = _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(value)));
-    return result;
-}
-
-float
-sin_f32(float value)
-{
-    float result = _mm_cvtss_f32(sin_ps(_mm_set_ss(value)));
-    return result;
-}
-
-#define POINT_COUNT 25
-global f32 scale = 3.0f;
+#define POINT_COUNT 30
+global f32 scale = 1.5f;
 global f32 scale_x = scale;
 global f32 scale_y = scale;
 // global char ttf_buffer[1<<25];
@@ -291,6 +261,8 @@ start(void)
 
     Image tree_image = draw_centroid_tree(&centroid_tree);
     save_image(tree_image, "tree.bmp");
+
+    WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 2.0f);
 
     u64 E = get_clock();
 

@@ -1,5 +1,6 @@
 #!/bin/bash
 
+mkdir build
 cd build
 
 g++ ../source/linux_main.cpp -msse4.1 -O0 -g -ggdb -o linux_main
