@@ -143,7 +143,7 @@ load_image(char *filename)
     fseek(fp, 0, SEEK_SET);
 
     u8 *filedata = (u8 *) allocate_memory(filesize);
-    size_t bytes_read = fread(filedata, filesize, 1, fp);
+    size_t bytes_read = fread(filedata, 1, filesize, fp);
     assert(bytes_read == filesize);
 
     fclose(fp);
@@ -221,6 +221,29 @@ save_image(Image image, char const *filename)
         fclose(fp);
     } else {
         fprintf(stdout, "cannot open file %s for writing!\n", filename);
+    }
+}
+
+void
+blit_bitmap(Image *dest, int dest_x, int dest_y, Image *source, int source_x, int source_y, int width, int height)
+{
+    u8 *source_row = (u8 *) source->pixels + source_y*source->stride + source_x*4;
+    u8 *dest_row   = (u8 *) dest->pixels + dest_y*dest->stride + dest_x*4;
+
+    for (int y = 0; y < height; ++y) {
+        u32 *source_pixel = (u32 *) source_row;
+        u32 *dest_pixel   = (u32 *) dest_row;
+        for (int x = 0; x < width; ++x) {
+            // @TODO real alpha blending
+            if (*source_pixel & 0xff000000) {
+                *dest_pixel = *source_pixel;
+            }
+
+            ++dest_pixel;
+            ++source_pixel;
+        }
+        source_row += source->stride;
+        dest_row   += dest->stride;
     }
 }
 
@@ -305,6 +328,24 @@ draw_rectangle_outline(Image *image, int min_x, int min_y, int max_x, int max_y,
     draw_line(image, min_x, min_y, max_x, min_y, colour);
     draw_line(image, max_x, min_y, max_x, max_y, colour);
     draw_line(image, min_x, max_y, max_x, max_y, colour);
+}
+
+void
+draw_string(Image *image, Image *font, char *text, int x, int y, int font_cols, int glyph_width, int glyph_height)
+{
+    char *at = text;
+    char c;
+    while ((c = *at++) != 0) {
+        int glyph_index = c - 32; // @NOTE: 32 is space in ascii
+        assert((0 <= glyph_index) && (glyph_index <= 94));
+
+        int glyph_x = glyph_width * (glyph_index % font_cols);
+        int glyph_y = glyph_height * (glyph_index / font_cols);
+
+        blit_bitmap(image, x, y, font, glyph_x, glyph_y, glyph_width, glyph_height);
+
+        x += glyph_width;
+    }
 }
 
 #define IMAGE_H

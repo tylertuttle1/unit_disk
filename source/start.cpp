@@ -286,6 +286,20 @@ start(void)
     save_image(image1, "out_mst.bmp");
     save_image(image2, "out.bmp");
 
+    Image font_bitmap = load_image("fontfont.bmp");
+    Image test_output = create_image(512, 512);
+
+    int x = 100;
+    int y = 100;
+
+    int font_cols = 16;
+    int glyph_width  = 8;
+    int glyph_height = 8;
+    char *s = "Testy ^:)";
+
+    draw_string(&test_output, &font_bitmap, s, x, y, font_cols, glyph_width, glyph_height);
+    save_image(test_output, "fontfonttest.bmp");
+
 #if 0
     // @TODO: make this into a function that we can call to draw text.
 
