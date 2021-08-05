@@ -132,60 +132,62 @@ u8_unpack(u8 value)
 }
 
 Image
-load_image(char *filename)
+load_image(char const *filename)
 {
     Image result = {};
 
     FILE *fp = fopen(filename, "rb");
 
-    fseek(fp, 0, SEEK_END);
-    s32 filesize = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
+    if (fp) {
+        fseek(fp, 0, SEEK_END);
+        s32 filesize = ftell(fp);
+        fseek(fp, 0, SEEK_SET);
 
-    u8 *filedata = (u8 *) allocate_memory(filesize);
-    size_t bytes_read = fread(filedata, 1, filesize, fp);
-    assert(bytes_read == filesize);
+        u8 *filedata = (u8 *) allocate_memory(filesize);
+        size_t bytes_read = fread(filedata, 1, filesize, fp);
+        assert(bytes_read == filesize);
 
-    fclose(fp);
+        fclose(fp);
 
-    // @NOTE: this is not a fully-featured bitmap loader. right now it only supports
-    // the format that paint.net outputs on my machine.
-    BitmapFileHeader file_header = *(BitmapFileHeader *) filedata;
-    BitmapHeader header = *(BitmapHeader *)(filedata + sizeof(BitmapFileHeader));
+        // @NOTE: this is not a fully-featured bitmap loader. right now it only supports
+        // the format that paint.net outputs on my machine.
+        BitmapFileHeader file_header = *(BitmapFileHeader *) filedata;
+        BitmapHeader header = *(BitmapHeader *)(filedata + sizeof(BitmapFileHeader));
 
-    int stride   = header.width * sizeof(u32);
+        int stride   = header.width * sizeof(u32);
 
-    result.width  = header.width;
-    result.height = abs(header.height);
-    result.stride = stride;
-    result.size_in_bytes = stride * header.height;
-    result.pixels = allocate_memory(result.size_in_bytes);
+        result.width  = header.width;
+        result.height = abs(header.height);
+        result.stride = stride;
+        result.size_in_bytes = stride * header.height;
+        result.pixels = allocate_memory(result.size_in_bytes);
 
-    u8 *source_row = filedata + file_header.bitmap_offset + (header.height - 1)*stride;
-    u8 *dest_row   = (u8 *) result.pixels;
+        u8 *source_row = filedata + file_header.bitmap_offset + (header.height - 1)*stride;
+        u8 *dest_row   = (u8 *) result.pixels;
 
-    for (int y = 0; y < header.height; ++y) {
-        u32 *source_pixel = (u32 *) source_row;
-        u32 *dest_pixel   = (u32 *) dest_row;
+        for (int y = 0; y < header.height; ++y) {
+            u32 *source_pixel = (u32 *) source_row;
+            u32 *dest_pixel   = (u32 *) dest_row;
 
-        for (int x = 0; x < header.width; ++x) {
-            u32 colour = *source_pixel++;
+            for (int x = 0; x < header.width; ++x) {
+                u32 colour = *source_pixel++;
 
-            u32 red_shift   = lsb(header.red_mask);
-            u32 green_shift = lsb(header.green_mask);
-            u32 blue_shift  = lsb(header.blue_mask);
-            u32 alpha_shift = lsb(header.alpha_mask);
+                u32 red_shift   = lsb(header.red_mask);
+                u32 green_shift = lsb(header.green_mask);
+                u32 blue_shift  = lsb(header.blue_mask);
+                u32 alpha_shift = lsb(header.alpha_mask);
 
-            u32 red   = (colour & header.red_mask) >> red_shift;
-            u32 green = (colour & header.green_mask) >> green_shift;
-            u32 blue  = (colour & header.blue_mask) >> blue_shift;
-            u32 alpha = (colour & header.alpha_mask) >> alpha_shift;
+                u32 red   = (colour & header.red_mask) >> red_shift;
+                u32 green = (colour & header.green_mask) >> green_shift;
+                u32 blue  = (colour & header.blue_mask) >> blue_shift;
+                u32 alpha = (colour & header.alpha_mask) >> alpha_shift;
 
-            *dest_pixel++ = (alpha << 24) | (red << 16) | (green << 8) | blue;
+                *dest_pixel++ = (alpha << 24) | (red << 16) | (green << 8) | blue;
+            }
+
+            source_row -= stride;
+            dest_row += stride;
         }
-
-        source_row -= stride;
-        dest_row += stride;
     }
 
     return result;
@@ -194,8 +196,10 @@ load_image(char *filename)
 void
 save_image(Image image, char const *filename)
 {
+#define twocc(s) (u16)(((s)[0]) | ((s)[1] << 8))
+
     BitmapFileHeader output_file_header = {};
-    output_file_header.type          = 'MB'; // @TODO: gcc complains about this
+    output_file_header.type          = twocc("BM");
     output_file_header.size          = sizeof(BitmapFileHeader) + sizeof(BitmapHeader) + image.size_in_bytes;
     output_file_header.bitmap_offset = sizeof(BitmapFileHeader) + sizeof(BitmapHeader);
 
@@ -331,9 +335,9 @@ draw_rectangle_outline(Image *image, int min_x, int min_y, int max_x, int max_y,
 }
 
 void
-draw_string(Image *image, Image *font, char *text, int x, int y, int font_cols, int glyph_width, int glyph_height)
+draw_string(Image *image, Image *font, char const *text, int x, int y, int font_cols, int glyph_width, int glyph_height)
 {
-    char *at = text;
+    char *at = (char *) text;
     char c;
     while ((c = *at++) != 0) {
         int glyph_index = c - 32; // @NOTE: 32 is space in ascii

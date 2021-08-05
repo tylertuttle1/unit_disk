@@ -10,7 +10,11 @@ set ldflags=
 set libs=
 set exename=win32_main
 
+if not exist build mkdir build
+
 pushd build
+
+cd
 
 cl %ccflags% ..\source\win32_main.cpp /Fe:%exename%.exe /link %ldflags% %libs%
 

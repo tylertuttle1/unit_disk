@@ -1,5 +1,10 @@
 # Building
 
+if you're building on linux, you have to have gcc installed. if you're building
+on windows, you have to have visual studio installed. the build script assumes that
+you've already set up your command line environment, see
+[the docs](https://docs.microsoft.com/en-us/cpp/build/building-on-the-command-line?view=msvc-160).
+
 on windows, run `build.bat`. on linux, run `build.sh`. both scripts are set up to
 run the program once it's built (for testing), so if you don't want that you'll have
 to edit the scripts. you have to run them from the base directory.

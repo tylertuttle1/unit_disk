@@ -5,20 +5,36 @@
 
 #include <stdlib.h>
 #include <time.h>
+#include <sys/mman.h>
 
 #include "basic.h"
 #include "platform.h"
 #include "start.cpp"
 
+struct LinuxMemoryBlock
+{
+    size_t size;
+};
+
 ALLOCATE_MEMORY(linux_allocate_memory)
 {
-    void *result = malloc(size);
+    // void *result = malloc(size);
+
+    size_t actual_size = size + sizeof(LinuxMemoryBlock);
+    LinuxMemoryBlock *block = (LinuxMemoryBlock *) mmap(0, actual_size, PROT_READ | PROT_WRITE, MAP_ANONYMOUS | MAP_PRIVATE, -1, 0);
+    block->size = actual_size;
+
+    void *result = ((char *) block + sizeof(LinuxMemoryBlock));
+
     return result;
 }
 
 FREE_MEMORY(linux_free_memory)
 {
-    free(ptr);
+    // free(ptr);
+
+    LinuxMemoryBlock *block = (LinuxMemoryBlock *) ptr - 1;
+    munmap(block, block->size);
 }
 
 GET_CLOCK(linux_get_clock)
