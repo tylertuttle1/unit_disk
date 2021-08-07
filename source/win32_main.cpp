@@ -32,6 +32,11 @@ GET_CLOCK_FREQUENCY(win32_get_clock_frequency)
 int
 main(int argc, char **argv)
 {
+    HANDLE stdout_handle = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD console_mode = 0;
+    GetConsoleMode(stdout_handle, &console_mode);
+    SetConsoleMode(stdout_handle, console_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+
     allocate_memory = win32_allocate_memory;
     free_memory = win32_free_memory;
     get_clock = win32_get_clock;
