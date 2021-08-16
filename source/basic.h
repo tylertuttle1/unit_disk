@@ -40,6 +40,14 @@ typedef intptr_t smm;
 #if 1
 #define min(a, b) (((a) < (b)) ? (a) : (b))
 #define max(a, b) (((a) > (b)) ? (a) : (b))
+
+#define MIN(a, b)        (((a) < (b)) ? (a) : (b))
+#define MIN3(a, b, c)    MIN((a), MIN((b), (c)))
+#define MIN4(a, b, c, d) MIN(MIN((a), (b)), MIN((c), (d)))
+
+#define MAX(a, b)        (((a) > (b)) ? (a) : (b))
+#define MAX3(a, b, c)    MAX((a), MAX((b), (c)))
+#define MAX4(a, b, c, d) MAX(MAX((a), (b)), MAX((c), (d)))
 #else
 template <typename T>
 T min(T a, T b)
@@ -72,7 +80,7 @@ T max(T a, T b)
 
 #define copy_array(dest, souce, count) copy_memory((dest), (source), (count)*sizeof((source)[0]))
 #define clear_array(base, count) clear_memory((base), (count)*sizeof((base)[0]))
-#define clear_struct(instance) clear_memory(sizeof(instance), &(instance))
+#define clear_struct(instance) clear_memory(&(instance), sizeof(instance))
 
 internal void *
 copy_memory(void *dest, void const *source, size_t count)
@@ -80,7 +88,7 @@ copy_memory(void *dest, void const *source, size_t count)
     u8 *dest_u8 = (u8 *) dest;
     u8 *source_u8 = (u8 *) source;
 
-    for (size_t index = 0; index < count; ++index) {
+    while (count--) {
         *dest_u8++ = *source_u8++;
     }
 
@@ -92,7 +100,7 @@ clear_memory(void *dest, size_t count)
 {
     u8 *dest_u8 = (u8 *) dest;
 
-    for (size_t index = 0; index < count; ++index) {
+    while (count--) {
         *dest_u8++ = 0;
     }
 
@@ -104,7 +112,7 @@ set_memory(void *dest, u8 value, size_t count)
 {
     u8 *dest_u8 = (u8 *) dest;
 
-    for (size_t index = 0; index < count; ++index) {
+    while (count--) {
         *dest_u8++ = value;
     }
 
