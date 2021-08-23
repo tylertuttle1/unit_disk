@@ -87,20 +87,24 @@ draw_edges(Image *image, Graph *graph, u32 colour)
 }
 
 void
+draw_single_point(Image *image, v2 point, u32 colour)
+{
+    f32 x = point.x;
+    f32 y = point.y;
+
+    int min_x = (int)(image->width*x/scale_x - 2.5f);
+    int max_x = (int)(image->width*x/scale_x + 2.5f);
+    int min_y = (int)(image->height*(scale_y - y)/scale_y - 2.5f);
+    int max_y = (int)(image->height*(scale_y - y)/scale_y + 2.5f);
+
+    draw_rectangle(image, min_x, min_y, max_x, max_y, colour);
+}
+
+void
 draw_points(Image *image, v2 *points, int point_count, u32 colour)
 {
     for (int i = 0; i < point_count; ++i) {
-        f32 x = points[i].x;
-        f32 y = points[i].y;
-
-        int min_x = (int)(image->width*x/scale_x - 2.5f);
-        int max_x = (int)(image->width*x/scale_x + 2.5f);
-        int min_y = (int)(image->height*(scale_y - y)/scale_y - 2.5f);
-        int max_y = (int)(image->height*(scale_y - y)/scale_y + 2.5f);
-
-        u32 colour = bgra32_pack(1.0f, 0.0f, 0.0f, 1.0f);
-
-        draw_rectangle(image, min_x, min_y, max_x, max_y, colour);
+        draw_single_point(image, points[i], colour);
     }
 }
 
@@ -217,7 +221,7 @@ start(void)
         assert(centroid_tree.nodes[i].left >= 0);
         assert(centroid_tree.nodes[i].right >= 0);
     }
-    draw_edges(&image2, &graph, 0xff333333);
+    draw_edges(&image2, &graph, 0xff222222);
 
     int queue[2*POINT_COUNT - 1] = {};
     int index;
@@ -252,7 +256,7 @@ start(void)
         int x1 = image2.width * q.x / scale_x;
         int y1 = (image2.height - 1) * (scale_y - q.y) / scale_y;
 
-        draw_line(&image2, x0, y0, x1, y1, colours[colour_index % arraycount(colours)]);
+        draw_line(&image2, x0, y0, x1, y1, 0xff999999);
 
         // @NOTE: if node is internal
         if (node.point == -1) {
@@ -261,7 +265,7 @@ start(void)
         }
     }
 
-    draw_points(&image2, points, POINT_COUNT, 0xff0000ff);
+    draw_points(&image2, points, POINT_COUNT, 0xff222299);
 
     for (int i = 0; i < centroid_tree.node_count; ++i) {
         assert(centroid_tree.nodes[i].left >= 0);
@@ -278,7 +282,40 @@ start(void)
 
     u64 E = get_clock();
 
-    DijkstraResult dijkstra_result = dijkstra(&graph, 0);
+    int source = 5;
+    DijkstraResult dijkstra_result = dijkstra(&graph, source);
+
+    int u = 100;
+    int midpoint;
+    bool midpoint_found = false;
+    f32 total_distance = dijkstra_result.dist[u];
+    v2 last_p = points[u];
+    draw_single_point(&image2, points[u], 0xff7f2222);
+    while (u != source) {
+        if (!midpoint_found && (dijkstra_result.dist[dijkstra_result.prev[u]] < (0.5f * total_distance))) {
+            // we know that either u or prev[u] is the midpoint.
+            if (dijkstra_result.dist[dijkstra_result.prev[u]] > (total_distance - dijkstra_result.dist[u])) {
+                midpoint = dijkstra_result.prev[u];
+            } else {
+                midpoint = u;
+            }
+
+            midpoint_found = true;
+        }
+
+        u = dijkstra_result.prev[u];
+        v2 point = points[u];
+
+        int x0 = image2.width * point.x / scale_x;
+        int y0 = (image2.height - 1) * (scale_y - point.y) / scale_y;
+        int x1 = image2.width * last_p.x / scale_x;
+        int y1 = (image2.height - 1) * (scale_y - last_p.y) / scale_y;
+        draw_line(&image2, x0, y0, x1, y1, 0xff7f2222);
+        draw_single_point(&image2, points[u], 0xff7f2222);
+        last_p = point;
+    }
+
+    draw_single_point(&image2, points[midpoint], 0xffffff00);
 
     printf("time to build unit disk graph: %f ms\n", milliseconds(A, B, freq));
     printf("time to build minimum spanning tree: %f ms\n", milliseconds(B, C, freq));
