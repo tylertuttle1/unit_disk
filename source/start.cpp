@@ -184,7 +184,7 @@ int
 start(void)
 {
     RNG rng;
-    seed_rng(&rng, 123123, 123123);
+    seed_rng(&rng, 0, 0);
 
     v2 points[POINT_COUNT] = {};
     for (int i = 0; i < POINT_COUNT; ++i) {
@@ -278,6 +278,8 @@ start(void)
 
     u64 E = get_clock();
 
+    DijkstraResult dijkstra_result = dijkstra(&graph, 0);
+
     printf("time to build unit disk graph: %f ms\n", milliseconds(A, B, freq));
     printf("time to build minimum spanning tree: %f ms\n", milliseconds(B, C, freq));
     printf("time to build centroid tree: %f ms\n", milliseconds(D, E, freq));
@@ -286,21 +288,21 @@ start(void)
     save_image(image1, "out_mst.bmp");
     save_image(image2, "out.bmp");
 
-    Image font_bitmap = load_image("fontfont.bmp");
-    if (font_bitmap.pixels) {
-        Image test_output = create_image(512, 512);
+    // Image font_bitmap = load_image("fontfont.bmp");
+    // if (font_bitmap.pixels) {
+    //     Image test_output = create_image(512, 512);
 
-        int x = 100;
-        int y = 100;
+    //     int x = 100;
+    //     int y = 100;
 
-        int font_cols = 16;
-        int glyph_width  = 8;
-        int glyph_height = 8;
-        char const *s = "Testy ^:)";
+    //     int font_cols = 16;
+    //     int glyph_width  = 8;
+    //     int glyph_height = 8;
+    //     char const *s = "Testy ^:)";
 
-        draw_string(&test_output, &font_bitmap, s, x, y, font_cols, glyph_width, glyph_height);
-        save_image(test_output, "fontfonttest.bmp");
-    }
+    //     draw_string(&test_output, &font_bitmap, s, x, y, font_cols, glyph_width, glyph_height);
+    //     save_image(test_output, "fontfonttest.bmp");
+    // }
 
 #if 0
     // @TODO: make this into a function that we can call to draw text.

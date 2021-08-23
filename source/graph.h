@@ -2,6 +2,7 @@
 
 // @TODO: remove this once we replace qsort
 #include <stdlib.h>
+#include <math.h>
 #include "basic.h"
 
 struct Graph
@@ -334,6 +335,86 @@ depth_first_search(Graph *graph, int start_vertex, DFSCallback *preorder_callbac
 
     free_memory(discovered);
 }
+
+struct DijkstraResult
+{
+    int *prev;
+    f32 *dist;
+};
+
+DijkstraResult
+dijkstra(Graph *graph, int source)
+{
+    DijkstraResult result;
+
+    // MINHEAP is a mean heap storing all the vertices of the graph
+    int heap_size = graph->vertex_count;
+
+    size_t block_size = graph->vertex_count * (2 * sizeof(int) + sizeof(f32));
+    void *block = allocate_memory(block_size);
+
+    int *heap = (int *) block;
+    int *prev = (int *) block + graph->vertex_count;
+    f32 *dist = (f32 *)((int *) block + 2*graph->vertex_count);
+
+    for (int i = 0; i < graph->vertex_count; ++i) {
+        dist[i] = INFINITY;
+        prev[i] = -1;
+        heap[i] = i;
+    }
+
+    dist[source] = 0.0f;
+
+    while (heap_size > 0) {
+        // 1. find the vertex in Q with min dist[i]
+        int min_index = 0;
+        for (int i = 1; i < heap_size; ++i) {
+            if (dist[heap[i]] < dist[heap[min_index]]) {
+                min_index = i;
+            }
+        }
+
+        // 2. remove that vertex from Q
+        int v = heap[min_index];
+        for (int i = min_index+1; i < heap_size; ++i) {
+            heap[i-1] = heap[i];
+        }
+        --heap_size;
+
+        // 3. for each neighbour of that vertex ...
+        int offset = graph->offsets[v];
+        int degree = graph->degrees[v];
+        for (int i = 0; i < degree; ++i) {
+            int neighbour = graph->adjacency_list[offset + i];
+
+            // if neighbour is in heap
+            int found = 0;
+            for (int j = 0; j < heap_size; ++j) {
+                if (heap[j] == neighbour) {
+                    found = 1;
+                    break;
+                }
+            }
+            if (found) {
+                v2 p = graph->points[v];
+                v2 q = graph->points[neighbour];
+                f32 test_value = dist[v] + distance(p, q);
+
+                if (test_value < dist[neighbour]) {
+                    dist[neighbour] = test_value;
+                    prev[neighbour] = v;
+                }
+            }
+        }
+    }
+
+    result.prev = prev;
+    result.dist = dist;
+
+    return result;
+}
+
+
 
 #if 0
 DFS_CALLBACK(my_dfs_callback)
