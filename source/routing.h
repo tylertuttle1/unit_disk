@@ -34,6 +34,26 @@ struct Header
     int sp;
 };
 
+internal void
+construct_routing_table(size_t point, size_t node, WSPD *wspd, CentroidTree *centroid_tree)
+{
+    // @TODO under construction
+
+    size_t pairs[MAX_PAIRS];
+    size_t sp = 0;
+
+    for (size_t i = 0; i < wspd->pair_count; ++i) {
+        if (node == wspd->pairs[i].a || node == wspd->pairs[i].b) {
+            pairs[sp++] = i;
+        }
+    }
+
+    size_t M = sp;
+    size_t N = centroid_tree->nodes[point].size;
+
+    // @TODO: depth first search of subtree of node.
+}
+
 void
 find_routing_path(v2 *points, int point_count, WSPD *wspd, RoutingTable *tables, int start, int destination)
 {

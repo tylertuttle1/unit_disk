@@ -347,7 +347,7 @@ dijkstra(Graph *graph, int source)
 {
     DijkstraResult result;
 
-    // MINHEAP is a mean heap storing all the vertices of the graph
+    // MINHEAP is a """mean heap""" storing all the vertices of the graph
     int heap_size = graph->vertex_count;
 
     size_t block_size = graph->vertex_count * (2 * sizeof(int) + sizeof(f32));
