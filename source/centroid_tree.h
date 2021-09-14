@@ -117,8 +117,6 @@ find_centroid_edge(Graph *tree, int root)
         parent_id = current_vertex;
         current_vertex = largest_child;
     }
-
-    assert(!"invalid code path!");
 }
 
 int
