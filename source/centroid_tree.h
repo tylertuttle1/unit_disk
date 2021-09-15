@@ -128,8 +128,8 @@ build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
     ++tree->node_count;
 
     if (is_single_vertex(tree->graph, start_vertex)) {
-        result->left = 0;
-        result->right = 0;
+        result->left = -1;
+        result->right = -1;
         result->edge = {};
         result->point = start_vertex;
         result->representative = start_vertex;
@@ -148,9 +148,8 @@ build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
         result->height = 1 + max(tree->nodes[result->left].height, tree->nodes[result->right].height);
     }
 
-    // @TODO sometimes these values seem to be negative. why?
-    assert(result->left  >= 0);
-    assert(result->right >= 0);
+    // assert(result->left  >= 0);
+    // assert(result->right >= 0);
     assert(node_index >= 0);
     return node_index;
 }
@@ -160,6 +159,13 @@ build_centroid_tree(Graph *mst)
 {
     // centroid tree is a (full) binary tree with n leaves
     // that means there is 2n - 1 total nodes.
+
+    // since we remove edges 
+    int *adjacency_list = (int *) allocate_memory(sizeof(int) * 6 * mst->vertex_count);
+    copy_memory(adjacency_list, mst->adjacency_list, sizeof(int) * 6 * mst->vertex_count);
+
+    int *degrees = (int *) allocate_memory(sizeof(*degrees) * mst->vertex_count);
+    copy_memory(degrees, mst->degrees, sizeof(*degrees) * mst->vertex_count);
 
     CentroidTree result;
 
@@ -174,7 +180,53 @@ build_centroid_tree(Graph *mst)
 
     result.height = result.nodes[0].height;
 
+    free_memory(mst->adjacency_list);
+    free_memory(mst->degrees);
+
+    mst->adjacency_list = adjacency_list;
+    mst->degrees = degrees;
+
     return result;
+}
+
+#define PREORDER_TRAVERSE(name) void name(CentroidTree *tree, void *data, int node)
+typedef PREORDER_TRAVERSE(TraverseCallback);
+
+internal void
+preorder_traverse(CentroidTree *tree, TraverseCallback *callback, void *callback_data)
+{
+    int t, p;
+    t = 0; // @TODO: right now the root is always at index zero
+
+#define LLINK(t) tree->nodes[t].left
+#define RLINK(t) tree->nodes[t].right
+#define VISIT(t) callback(tree, callback_data, t)
+
+    while (t != -1) {
+        if (LLINK(t) == -1) {
+            VISIT(t);
+            t = RLINK(t);
+        } else {
+            p = LLINK(t);
+
+            while (RLINK(p) >= 0 && RLINK(p) != t) {
+                p = RLINK(p);
+            }
+
+            if (RLINK(p) == -1) {
+                VISIT(t);
+                RLINK(p) = t;
+                t = LLINK(t);
+            } else {
+                RLINK(p) = -1;
+                t = RLINK(t);
+            }
+        }
+    }
+
+#undef LLINK
+#undef RLINK
+#undef VISIT
 }
 
 #endif

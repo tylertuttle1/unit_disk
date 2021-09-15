@@ -11,7 +11,7 @@ struct LocalTableEntry
 
 struct GlobalTableEntry
 {
-    WSPair pair;
+    WellSeparatedPair pair;
     int midpoint;
 };
 
@@ -34,6 +34,59 @@ struct Header
     int sp;
 };
 
+PREORDER_TRAVERSE(local_table_callback)
+{
+    if (tree->nodes[node].point == -1) {
+        RoutingTable *routing_tables = (RoutingTable *) data;
+
+        int pi = tree->nodes[node].edge.pi;
+        int qi = tree->nodes[node].edge.qi;
+
+        routing_tables[pi].local_table[routing_tables[pi].local_table_size].neighbour_id = qi;
+        routing_tables[pi].local_table[routing_tables[pi].local_table_size].level = tree->nodes[node].height;
+        ++routing_tables[pi].local_table_size;
+
+        routing_tables[qi].local_table[routing_tables[qi].local_table_size].neighbour_id = pi;
+        routing_tables[qi].local_table[routing_tables[qi].local_table_size].level = tree->nodes[node].height;
+        ++routing_tables[qi].local_table_size;
+    }
+}
+
+global int total_pair_count = 0;
+
+PREORDER_TRAVERSE(global_table_callback)
+{
+    // @TODO: under construction
+    // we have to do a traversal for each internal node of the tree,
+    // so we can't use the iterative traversal that i implemented
+    // since it changes the structure of the tree. probably best to
+    // switch to the regular recursive traversal, at least for the outer one.
+
+    WSPD *wspd = (WSPD *) data;
+    int pair_count = 0;
+    for (int i = 0; i < wspd->pair_count; ++i) {
+        if (wspd->pairs[i].a == node || wspd->pairs[i].b == node) {
+            ++pair_count;
+            ++total_pair_count;
+        }
+    }
+
+    // @TODO: traverse the subtree of node, assigning the pairs
+
+    printf("node %d has %d pairs\n", node, pair_count);
+}
+
+internal RoutingTable *
+build_routing_tables(Graph *mst, CentroidTree *centroid_tree, WSPD *wspd)
+{
+    RoutingTable *routing_tables = (RoutingTable *) allocate_memory(sizeof(*routing_tables) * mst->vertex_count);
+    preorder_traverse(centroid_tree, local_table_callback, routing_tables);
+    preorder_traverse(centroid_tree, global_table_callback, wspd);
+    printf("found %d pairs, wanted %d pairs\n", total_pair_count / 2, wspd->pair_count);
+    return routing_tables;
+}
+
+#if 0
 internal void
 construct_routing_table(size_t point, size_t node, WSPD *wspd, CentroidTree *centroid_tree)
 {
@@ -136,6 +189,7 @@ find_routing_path(v2 *points, int point_count, WSPD *wspd, RoutingTable *tables,
         }
     }
 }
+#endif
 
 #define ROUTING_H
 #endif

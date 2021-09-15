@@ -20,6 +20,7 @@
 #include "rng.h"
 #include "centroid_tree.h"
 #include "wspd.h"
+#include "routing.h"
 
 u64
 hash_pair(s32 ix, s32 iy)
@@ -183,10 +184,18 @@ draw_centroid_tree(CentroidTree *tree)
 
     return result;
 }
- 
+
 int
-start(void)
+start(int argc, char **argv)
 {
+    if (argc > 1) {
+        scale = strtof(argv[1], 0);
+        scale_x = scale;
+        scale_y = scale;
+    }
+
+    printf("scale: %f\n", scale);
+
     RNG rng;
     seed_rng(&rng, 0, 0);
 
@@ -196,31 +205,66 @@ start(void)
         points[i].y = scale_y * random_f32(&rng);
     }
 
-    Image image1 = create_image(512, 512);
-    Image image2 = create_image(512, 512);
-
     u64 freq = get_clock_frequency();
     u64 A = get_clock();
-
     Graph graph = build_unit_disk_graph(points, POINT_COUNT);
-
     u64 B = get_clock();
-
     Graph mst = compute_emst(points, POINT_COUNT);
 
+    // @NOTE: EMST has no edges longer than 1 iff unit disk graph is connected
+    for (int i = 0; i < mst.vertex_count; ++i) {
+        int degree = mst.degrees[i];
+        int offset = mst.offsets[i];
+        for (int j = 0; j < degree; ++j) {
+            int neighbour = mst.adjacency_list[offset + j];
+            if (distance_squared(mst.points[i], mst.points[neighbour]) > 1.0f) {
+                fprintf(stderr, "distance({%.3f, %.3f},  {%.3f, %.3f}) == %.3f\n",
+                    mst.points[i].x, mst.points[i].y,
+                    mst.points[neighbour].x, mst.points[neighbour].y,
+                    distance(mst.points[i], mst.points[neighbour]));
+                return 1;
+            }
+        }
+    }
+
     u64 C = get_clock();
+    CentroidTree centroid_tree = build_centroid_tree(&mst);
+    // for (int i = 0; i < centroid_tree.node_count; ++i) {
+    //     assert(centroid_tree.nodes[i].left >= 0);
+    //     assert(centroid_tree.nodes[i].right >= 0);
+    // }
+
+    // @NOTE: make sure i didn't fuck up
+    for (int i = 0; i < mst.vertex_count; ++i) {
+        assert(mst.degrees[i] > 0);
+    }
+
+    u64 D = get_clock();
+    WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 0.05);
+    u64 E = get_clock();
+    int source = 0;
+    DijkstraResult dijkstra_result = dijkstra(&graph, source);
+    u64 F = get_clock();
+    RoutingTable *routing_tables = build_routing_tables(&mst, &centroid_tree, &wspd);
+
+    for (size_t i = 0; i < routing_tables[0].local_table_size; ++i) {
+        printf("neighbour %d\tlevel %d\n", routing_tables[0].local_table[i].neighbour_id, routing_tables[0].local_table[i].level);
+    }
+
+    u64 G = get_clock();
+
+    printf("time to build unit disk graph: %f ms\n", milliseconds(A, B, freq));
+    printf("time to build minimum spanning tree: %f ms\n", milliseconds(B, C, freq));
+    printf("time to build centroid tree: %f ms\n", milliseconds(C, D, freq));
+    printf("time to build wspd: %f ms\n", milliseconds(D, E, freq));
+    printf("time to run disjkstra: %f ms\n", milliseconds(E, F, freq));
+
+    Image image1 = create_image(512, 512);
+    Image image2 = create_image(512, 512);
 
     draw_edges(&image1, &graph, 0xff333333);
     draw_edges(&image1, &mst, 0xff00ff00);
     draw_points(&image1, points, POINT_COUNT, 0xff0000ff);
-
-    u64 D = get_clock();
-
-    CentroidTree centroid_tree = build_centroid_tree(&mst);
-    for (int i = 0; i < centroid_tree.node_count; ++i) {
-        assert(centroid_tree.nodes[i].left >= 0);
-        assert(centroid_tree.nodes[i].right >= 0);
-    }
     draw_edges(&image2, &graph, 0xff222222);
 
     int queue[2*POINT_COUNT - 1] = {};
@@ -267,23 +311,13 @@ start(void)
 
     draw_points(&image2, points, POINT_COUNT, 0xff222299);
 
-    for (int i = 0; i < centroid_tree.node_count; ++i) {
-        assert(centroid_tree.nodes[i].left >= 0);
-        assert(centroid_tree.nodes[i].right >= 0);
-    }
     Image tree_image = draw_centroid_tree(&centroid_tree);
     save_image(tree_image, "tree.bmp");
 
-    WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 0.05);
     // for (int i = 0; i < wspd.pair_count; ++i) {
     //     WellSeparatedPair pair = wspd.pairs[i];
     //     printf("[%d] (%d, %d)\n", i, pair.a, pair.b);
     // }
-
-    u64 E = get_clock();
-
-    int source = 5;
-    DijkstraResult dijkstra_result = dijkstra(&graph, source);
 
     int u = 100;
     int midpoint;
@@ -316,11 +350,7 @@ start(void)
     }
 
     draw_single_point(&image2, points[midpoint], 0xffffff00);
-
-    printf("time to build unit disk graph: %f ms\n", milliseconds(A, B, freq));
-    printf("time to build minimum spanning tree: %f ms\n", milliseconds(B, C, freq));
-    printf("time to build centroid tree: %f ms\n", milliseconds(D, E, freq));
-    printf("time to draw graph: %f ms\n", milliseconds(C, D, freq));
+    draw_single_point(&image2, points[source], 0xffffffff);
 
     save_image(image1, "out_mst.bmp");
     save_image(image2, "out.bmp");

@@ -62,7 +62,7 @@ main(int argc, char **argv)
     get_clock = linux_get_clock;
     get_clock_frequency = linux_get_clock_frequency;
 
-    int errorlevel = start();
+    int errorlevel = start(argc, argv);
 
     return errorlevel;
 }

@@ -42,7 +42,7 @@ main(int argc, char **argv)
     get_clock = win32_get_clock;
     get_clock_frequency = win32_get_clock_frequency;
 
-    int errorlevel = start();
+    int errorlevel = start(argc, argv);
 
     return errorlevel;
 }
