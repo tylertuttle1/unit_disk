@@ -257,7 +257,8 @@ start(int argc, char **argv)
     printf("time to build minimum spanning tree: %f ms\n", milliseconds(B, C, freq));
     printf("time to build centroid tree: %f ms\n", milliseconds(C, D, freq));
     printf("time to build wspd: %f ms\n", milliseconds(D, E, freq));
-    printf("time to run disjkstra: %f ms\n", milliseconds(E, F, freq));
+    printf("time to run dijkstra: %f ms\n", milliseconds(E, F, freq));
+    printf("time to run build routing tables: %f ms\n", milliseconds(F, G, freq));
 
     Image image1 = create_image(512, 512);
     Image image2 = create_image(512, 512);
