@@ -193,10 +193,19 @@ build_centroid_tree(Graph *mst)
 typedef PREORDER_TRAVERSE(TraverseCallback);
 
 internal void
-preorder_traverse(CentroidTree *tree, TraverseCallback *callback, void *callback_data)
+preorder_traverse_recursive(CentroidTree *tree, int t, TraverseCallback *callback, void *callback_data)
 {
-    int t, p;
-    t = 0; // @TODO: right now the root is always at index zero
+    if (t != -1) {
+        callback(tree, callback_data, t);
+        preorder_traverse_recursive(tree, tree->nodes[t].left, callback, callback_data);
+        preorder_traverse_recursive(tree, tree->nodes[t].right, callback, callback_data);
+    }
+}
+
+internal void
+preorder_traverse_iterative(CentroidTree *tree, int t, TraverseCallback *callback, void *callback_data)
+{
+    int p;
 
 #define LLINK(t) tree->nodes[t].left
 #define RLINK(t) tree->nodes[t].right

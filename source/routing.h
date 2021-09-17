@@ -15,6 +15,9 @@ struct GlobalTableEntry
     int midpoint;
 };
 
+// @TODO: don't do this
+#define MAX_GLOBAL_TABLE_SIZE 512
+
 struct RoutingTable
 {
     LocalTableEntry local_table[6];
@@ -54,6 +57,42 @@ PREORDER_TRAVERSE(local_table_callback)
 
 global int total_pair_count = 0;
 
+PREORDER_TRAVERSE(global_table_callback_internal)
+{
+    if (tree->nodes[node].point != -1) {
+        umm *pointers = (umm *) data;
+        int numpairs  = (int) pointers[0];
+        int numleaves = (int) pointers[1];
+        int i         = (int) pointers[2];
+        WellSeparatedPair *pairs = (WellSeparatedPair *) pointers[3];
+        RoutingTable *routing_tables = (RoutingTable *) pointers[4];
+        Graph *unit_disk_graph = (Graph *) pointers[5];
+
+        int alpha = numpairs % numleaves;
+        int f = numpairs / numleaves;
+        int c = (numpairs + numleaves - 1) / numleaves;
+        int threshold = alpha * c;
+
+        int x = (i < threshold) ? c : f;
+
+        for (int j = i; j < min(i+x, numpairs); ++j) {
+            int point = tree->nodes[node].point;
+
+            size_t table_index = routing_tables[point].global_table_size;
+            routing_tables[point].global_table[table_index].pair = pairs[j];
+
+            // @TODO: NOT THIS BAD BAD BAD
+            int start = point;
+            int end = tree->nodes[pairs[j].b].representative;
+            DijkstraResult dijkstra_result = dijkstra(unit_disk_graph, start);
+            int midpoint = find_midpoint(&dijkstra_result, start, end);
+            routing_tables[point].global_table[table_index].midpoint = midpoint;
+
+            routing_tables[point].global_table_size += 1;
+        }
+    }
+}
+
 PREORDER_TRAVERSE(global_table_callback)
 {
     // @TODO: under construction
@@ -62,96 +101,61 @@ PREORDER_TRAVERSE(global_table_callback)
     // since it changes the structure of the tree. probably best to
     // switch to the regular recursive traversal, at least for the outer one.
 
-    WSPD *wspd = (WSPD *) data;
+    umm *pointers = (umm *) data;
+    RoutingTable *routing_tables = (RoutingTable *) pointers[0];
+    WSPD *wspd = (WSPD *) pointers[1];
+    Graph *unit_disk_graph = (Graph *) pointers[2];
+    WellSeparatedPair *pairs = (WellSeparatedPair *) allocate_memory(sizeof(*pairs) * MAX_GLOBAL_TABLE_SIZE);
     int pair_count = 0;
     for (int i = 0; i < wspd->pair_count; ++i) {
         if (wspd->pairs[i].a == node || wspd->pairs[i].b == node) {
+            pairs[pair_count].a = node;
+            pairs[pair_count].b = (wspd->pairs[i].a == node) ? wspd->pairs[i].a : wspd->pairs[i].b;
+
             ++pair_count;
             ++total_pair_count;
         }
     }
 
-    // @TODO: traverse the subtree of node, assigning the pairs
+    if (pair_count > 0) {
+        u64 *callback_data = (u64 *) allocate_memory(sizeof(*callback_data) * 5);
+        callback_data[0] = pair_count;
+        callback_data[1] = tree->nodes[node].size;
+        callback_data[2] = 0;
+        callback_data[3] = (umm) pairs;
+        callback_data[4] = (umm) routing_tables;
+        callback_data[5] = (umm) unit_disk_graph;
 
-    printf("node %d has %d pairs\n", node, pair_count);
+        preorder_traverse_iterative(tree, node, global_table_callback_internal, callback_data);
+
+        free_memory(callback_data);
+    }
 }
 
 internal RoutingTable *
-build_routing_tables(Graph *mst, CentroidTree *centroid_tree, WSPD *wspd)
+build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_tree, WSPD *wspd)
 {
     RoutingTable *routing_tables = (RoutingTable *) allocate_memory(sizeof(*routing_tables) * mst->vertex_count);
-    preorder_traverse(centroid_tree, local_table_callback, routing_tables);
-    preorder_traverse(centroid_tree, global_table_callback, wspd);
+    preorder_traverse_iterative(centroid_tree, 0, local_table_callback, routing_tables);
+
+    for (size_t i = 0; i < mst->vertex_count; ++i) {
+        routing_tables[i].global_table = (GlobalTableEntry *) allocate_memory(sizeof(GlobalTableEntry) * MAX_GLOBAL_TABLE_SIZE);
+        routing_tables[i].global_table_size = 0;
+    }
+
+    umm *global_data = (umm *) allocate_memory(sizeof(*global_data) * 2);
+    global_data[0] = (umm) routing_tables;
+    global_data[1] = (umm) wspd;
+    global_data[2] = (umm) unit_disk_graph;
+    preorder_traverse_recursive(centroid_tree, 0, global_table_callback, global_data);
+    free_memory(global_data);
+
     printf("found %d pairs, wanted %d pairs\n", total_pair_count / 2, wspd->pair_count);
     return routing_tables;
 }
 
-#if 0
-internal void
-construct_routing_table(size_t point, size_t node, WSPD *wspd, CentroidTree *centroid_tree)
-{
-    // @TODO under construction
-
-    size_t pairs[MAX_PAIRS];
-    size_t sp = 0;
-
-    for (size_t i = 0; i < wspd->pair_count; ++i) {
-        if (node == wspd->pairs[i].a || node == wspd->pairs[i].b) {
-            pairs[sp++] = i;
-        }
-    }
-
-    size_t M = sp;
-    size_t N = centroid_tree->nodes[point].size;
-
-    // @TODO: depth first search of subtree of node.
-}
-
-void
-build_routing_tables(v2 *points, int point_count, WSPD *wspd, Graph *mst, CentroidTree *centroid_tree, RoutingTable *tables)
-{
-    // @NOTE: build local tables
-    for (int point_index = 0; point_index < point_count; ++point_index) {
-        for (int i = 0; i < mst->degrees[point_index]; ++i) {
-            int neighbour = mst->adjacency_list[mst->offsets[point_index] + i];
-            tables[point_index].local_table[i].neighbour_id = neighbour;
-
-            // @TODO: find the edge {point_index, neighbour} in the centroid tree
-            // tables[point_index].local_table[i].level = ???;
-        }
-    }
 
 #if 0
-    for (each node in centroid_tree) {
-        WellSeparatedPair pair_list[4096];
-        int index = 0;
-
-        for (each pair in wspd->pairs) {
-            if (pair.a == node or pair.b == node) {
-                pair_list[index++] = pair;
-            }
-        }
-
-        // now we have a list of every pair that contains our node
-        int m = index / node.size;
-        int i = 0;
-        for (each point in the subtree of node) {
-            // assign pair_list[m*i : m*(i+1)] to point
-            for (int pair_index = m*i; pair_index < m*(i+1); ++pair_index) {
-                // push pair_list[pair_index] to tables[point_index].global_table
-                if (point is in pair.a) {
-                    // run dijkstra on point, representative(b) and find midpoint
-                } else {
-                    // run dijkstra on point, representative(a) and find midpoint
-                }
-                store midpoint in global_table
-            }
-            i += 1;
-        }
-    }
-#endif
-}
-
 void
 find_routing_path(v2 *points, int point_count, WSPD *wspd, RoutingTable *tables, int start, int destination)
 {

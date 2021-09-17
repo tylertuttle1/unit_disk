@@ -245,7 +245,7 @@ start(int argc, char **argv)
     int source = 0;
     DijkstraResult dijkstra_result = dijkstra(&graph, source);
     u64 F = get_clock();
-    RoutingTable *routing_tables = build_routing_tables(&mst, &centroid_tree, &wspd);
+    RoutingTable *routing_tables = build_routing_tables(&graph, &mst, &centroid_tree, &wspd);
 
     for (size_t i = 0; i < routing_tables[0].local_table_size; ++i) {
         printf("neighbour %d\tlevel %d\n", routing_tables[0].local_table[i].neighbour_id, routing_tables[0].local_table[i].level);

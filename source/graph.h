@@ -26,7 +26,7 @@ create_graph(int vertex_count)
     result.edge_count = 0;
 
     size_t block_size = vertex_count * (vertex_count + 1) * sizeof(int);
-    void *block = malloc(block_size);
+    void *block = allocate_memory(block_size);
     assert(block);
 
     memset(block, 0, block_size);
@@ -45,8 +45,8 @@ create_graph(int vertex_count)
 void
 destroy_graph(Graph *graph)
 {
-    free((void *) graph->offsets);
-    memset(&graph, 0, sizeof(Graph));
+    free_memory(graph->offsets);
+    memset(graph, 0, sizeof(*graph));
 }
 
 bool
@@ -176,10 +176,13 @@ struct UnionFind
     int element_count;
 };
 
+// @TODO: we only use the points here for drawing code now, so we can
+// get rid of them eventually.
 struct Edge
 {
     u32 pi, qi;
     v2 p, q;
+    f32 distance_squared;
 };
 
 void
@@ -220,8 +223,8 @@ compute_emst(v2 *points, int point_count)
         Edge ea = *(Edge *) a;
         Edge eb = *(Edge *) b;
 
-        f32 len_a = length_squared(ea.q - ea.p);
-        f32 len_b = length_squared(eb.q - eb.p);
+        f32 len_a = ea.distance_squared;
+        f32 len_b = eb.distance_squared;
 
         int result;
 
@@ -260,6 +263,7 @@ compute_emst(v2 *points, int point_count)
             edges[index].qi = j;
             edges[index].p = points[i];
             edges[index].q = points[j];
+            edges[index].distance_squared = length_squared(points[j] - points[i]);
             ++index;
         }
     }
@@ -414,6 +418,29 @@ dijkstra(Graph *graph, int source)
     return result;
 }
 
+internal int
+find_midpoint(DijkstraResult *dijkstra_result, int source, int u)
+{
+    int midpoint;
+    bool midpoint_found = false;
+    f32 total_distance = dijkstra_result->dist[u];
+    // v2 last_p = points[u];
+    while (u != source) {
+        if (!midpoint_found && (dijkstra_result->dist[dijkstra_result->prev[u]] < (0.5f * total_distance))) {
+            // we know that either u or prev[u] is the midpoint.
+            if (dijkstra_result->dist[dijkstra_result->prev[u]] > (total_distance - dijkstra_result->dist[u])) {
+                midpoint = dijkstra_result->prev[u];
+            } else {
+                midpoint = u;
+            }
+
+            midpoint_found = true;
+        }
+
+        u = dijkstra_result->prev[u];
+        // last_p = point;
+    }
+}
 
 
 #if 0
