@@ -56,6 +56,7 @@ PREORDER_TRAVERSE(local_table_callback)
 }
 
 global int total_pair_count = 0;
+global DijkstraResult *global_dijkstra_results;
 
 PREORDER_TRAVERSE(global_table_callback_internal)
 {
@@ -81,10 +82,9 @@ PREORDER_TRAVERSE(global_table_callback_internal)
             size_t table_index = routing_tables[point].global_table_size;
             routing_tables[point].global_table[table_index].pair = pairs[j];
 
-            // @TODO: NOT THIS BAD BAD BAD
             int start = point;
             int end = tree->nodes[pairs[j].b].representative;
-            DijkstraResult dijkstra_result = dijkstra(unit_disk_graph, start);
+            DijkstraResult dijkstra_result = global_dijkstra_results[start];
             int midpoint = find_midpoint(&dijkstra_result, start, end);
             routing_tables[point].global_table[table_index].midpoint = midpoint;
 

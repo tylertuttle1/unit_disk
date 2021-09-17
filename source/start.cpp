@@ -242,8 +242,11 @@ start(int argc, char **argv)
     u64 D = get_clock();
     WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 0.05);
     u64 E = get_clock();
-    int source = 0;
-    DijkstraResult dijkstra_result = dijkstra(&graph, source);
+    DijkstraResult dijkstra_results[POINT_COUNT];
+    for (int i = 0; i < POINT_COUNT; ++i) {
+        dijkstra_results[i] = dijkstra(&graph, i);
+    }
+    global_dijkstra_results = dijkstra_results;
     u64 F = get_clock();
     RoutingTable *routing_tables = build_routing_tables(&graph, &mst, &centroid_tree, &wspd);
 
@@ -320,9 +323,11 @@ start(int argc, char **argv)
     //     printf("[%d] (%d, %d)\n", i, pair.a, pair.b);
     // }
 
+    int source = 0;
     int u = 100;
     int midpoint;
     bool midpoint_found = false;
+    DijkstraResult dijkstra_result = dijkstra_results[source];
     f32 total_distance = dijkstra_result.dist[u];
     v2 last_p = points[u];
     draw_single_point(&image2, points[u], 0xff7f2222);
