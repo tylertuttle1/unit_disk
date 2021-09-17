@@ -138,6 +138,8 @@ build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_
     RoutingTable *routing_tables = (RoutingTable *) allocate_memory(sizeof(*routing_tables) * mst->vertex_count);
     preorder_traverse_iterative(centroid_tree, 0, local_table_callback, routing_tables);
 
+    // @TODO: make sure the local tables are sorted in clockwise order.
+
     for (size_t i = 0; i < mst->vertex_count; ++i) {
         routing_tables[i].global_table = (GlobalTableEntry *) allocate_memory(sizeof(GlobalTableEntry) * MAX_GLOBAL_TABLE_SIZE);
         routing_tables[i].global_table_size = 0;
@@ -155,9 +157,20 @@ build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_
 }
 
 
-#if 0
-void
-find_routing_path(v2 *points, int point_count, WSPD *wspd, RoutingTable *tables, int start, int destination)
+internal bool
+pair_contains(WSPD *wspd, WellSeparatedPair pair, int point)
+{
+    return false;
+}
+
+internal int
+get_level(CentroidTree *centroid_tree, int point)
+{
+    return 0;
+}
+
+internal void
+find_routing_path(v2 *points, int point_count, WSPD *wspd, RoutingTable *tables, int start, int destination, CentroidTree *centroid_tree)
 {
     Header routing_header = {0};
 
@@ -179,21 +192,20 @@ find_routing_path(v2 *points, int point_count, WSPD *wspd, RoutingTable *tables,
             }
         }
 
-        if (!header.initialized) {
-            header.initialized = current_point;
-            header.level = get_level(centroid_tree, current_point);
+        if (!routing_header.initialized) {
+            routing_header.initialized = current_point;
+            routing_header.current_level = get_level(centroid_tree, current_point);
         }
 
         // @TODO: find the next neighbour of `current_point` in the local table
 
-        if (found_r) {
-            current_point = r;
-        } else {
-            ++header.level;
-        }
+        // if (found_r) {
+        //     current_point = r;
+        // } else {
+        //     ++routing_header.level;
+        // }
     }
 }
-#endif
 
 #define ROUTING_H
 #endif
