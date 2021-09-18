@@ -20,6 +20,8 @@ struct GlobalTableEntry
 
 struct RoutingTable
 {
+    int level;
+
     LocalTableEntry local_table[6];
     size_t local_table_size;
 
@@ -33,6 +35,8 @@ struct Header
     int current_level;
     // @TODO: how big does this actually need to be? dynamically allocate
     // once we have a real bound on it?
+    int start_site;
+    int current_target;
     int target_stack[4096];
     int sp;
 };
@@ -157,6 +161,64 @@ build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_
 }
 
 
+internal void
+find_routing_path(v2 *points,
+                  size_t point_count,
+                  Graph *unit_disk_graph,
+                  Graph *mst,
+                  CentroidTree *centroid_tree,
+                  WSPD *wspd,
+                  RoutingTable *routing_tables,
+                  int start,
+                  int target)
+{
+    Header header = {0};
+    int current_site = start;
+
+    while (current_site != target) {
+        if (current_site == header.current_target) {
+            // pop from the stack
+            header.sp = header.sp - 1;
+            header.current_target = header.target_stack[header.sp];
+        } else {
+            RoutingTable routing_table = routing_tables[current_site];
+
+            GlobalTableEntry entry;
+            bool found = false;
+            for (int i = 0; i < routing_table.global_table_size; ++i) {
+                entry = routing_table.global_table[i];
+                // @TODO: check if header.current_target is in entry.pair
+            }
+
+            if (found) {
+                header.start_site = -1;
+
+                if (points_are_adjacent(unit_disk_graph, current_site, header.current_target)) {
+                    current_site = header.current_target;
+                } else {
+                    header.target_stack[header.sp++] = header.current_target;
+                    header.current_target = entry.midpoint;
+                }
+            } else {
+                if (header.start_site == -1) {
+                    header.start_site = current_site;
+                    header.current_level = routing_table.level;
+                }
+
+                // @TODO r is the next neighbour of current_site
+                int r = -1;
+
+                if (r == -1) {
+                    header.current_level = header.current_level - 1;
+                } else {
+                    current_site = r;
+                }
+            }
+        }
+    }
+}
+
+#if 0
 internal bool
 pair_contains(WSPD *wspd, WellSeparatedPair pair, int point)
 {
@@ -206,6 +268,7 @@ find_routing_path(v2 *points, int point_count, WSPD *wspd, RoutingTable *tables,
         // }
     }
 }
+#endif
 
 #define ROUTING_H
 #endif
