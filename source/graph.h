@@ -117,8 +117,6 @@ build_unit_disk_graph(v2 *points, int point_count)
 
     Graph result = {};
 
-    int a = max(1, 2);
-
     result.vertex_count = point_count;
     result.points = points;
 
@@ -440,6 +438,8 @@ find_midpoint(DijkstraResult *dijkstra_result, int source, int u)
         u = dijkstra_result->prev[u];
         // last_p = point;
     }
+
+    return u;
 }
 
 

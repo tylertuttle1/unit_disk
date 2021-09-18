@@ -22,6 +22,8 @@
 #include "wspd.h"
 #include "routing.h"
 
+// #include "../tracy-0.7.8/Tracy.hpp"
+
 u64
 hash_pair(s32 ix, s32 iy)
 {
@@ -193,8 +195,9 @@ start(int argc, char **argv)
         scale_x = scale;
         scale_y = scale;
     }
-
     printf("scale: %f\n", scale);
+
+    // TracyMessageL("testy ^:)");
 
     RNG rng;
     seed_rng(&rng, 0, 0);
@@ -206,9 +209,10 @@ start(int argc, char **argv)
     }
 
     u64 freq = get_clock_frequency();
-    u64 A = get_clock();
-    Graph graph = build_unit_disk_graph(points, POINT_COUNT);
-    u64 B = get_clock();
+    u64 A, B, C, D, E, F, G;
+    A = get_clock();
+    Graph graph= build_unit_disk_graph(points, POINT_COUNT);
+    B = get_clock();
     Graph mst = compute_emst(points, POINT_COUNT);
 
     // @NOTE: EMST has no edges longer than 1 iff unit disk graph is connected
@@ -227,7 +231,7 @@ start(int argc, char **argv)
         }
     }
 
-    u64 C = get_clock();
+    C = get_clock();
     CentroidTree centroid_tree = build_centroid_tree(&mst);
     // for (int i = 0; i < centroid_tree.node_count; ++i) {
     //     assert(centroid_tree.nodes[i].left >= 0);
@@ -239,22 +243,22 @@ start(int argc, char **argv)
         assert(mst.degrees[i] > 0);
     }
 
-    u64 D = get_clock();
+    D = get_clock();
     WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 0.05);
-    u64 E = get_clock();
+    E = get_clock();
     DijkstraResult dijkstra_results[POINT_COUNT];
     for (int i = 0; i < POINT_COUNT; ++i) {
         dijkstra_results[i] = dijkstra(&graph, i);
     }
     global_dijkstra_results = dijkstra_results;
-    u64 F = get_clock();
+    F = get_clock();
     RoutingTable *routing_tables = build_routing_tables(&graph, &mst, &centroid_tree, &wspd);
 
     for (size_t i = 0; i < routing_tables[0].local_table_size; ++i) {
         printf("neighbour %d\tlevel %d\n", routing_tables[0].local_table[i].neighbour_id, routing_tables[0].local_table[i].level);
     }
 
-    u64 G = get_clock();
+    G = get_clock();
 
     printf("time to build unit disk graph: %f ms\n", milliseconds(A, B, freq));
     printf("time to build minimum spanning tree: %f ms\n", milliseconds(B, C, freq));

@@ -13,6 +13,9 @@
 #include <stddef.h>
 
 #if COMPILER_MSVC == 1
+// #include <windows.h>
+// #undef min
+// #undef max
 #include "win32_defines.h"
 #endif
 
@@ -34,13 +37,10 @@ typedef intptr_t smm;
 
 #define arraycount(array) (sizeof(array) / sizeof((array)[0]))
 // #define offsetof(type, member) ((size_t) &(((type *) 0)->member))
-#define swap(a, b) do { auto swap = (a); (a) = (b); (b) = swap; } while (0)
+#define myswap(a, b) do { auto swap = (a); (a) = (b); (b) = swap; } while (0)
 
 // @NOTE: gcc's stdlib.h will undefine these macros for some reason?
 #if 1
-#define min(a, b) (((a) < (b)) ? (a) : (b))
-#define max(a, b) (((a) > (b)) ? (a) : (b))
-
 #define MIN(a, b)        (((a) < (b)) ? (a) : (b))
 #define MIN3(a, b, c)    MIN((a), MIN((b), (c)))
 #define MIN4(a, b, c, d) MIN(MIN((a), (b)), MIN((c), (d)))

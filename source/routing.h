@@ -76,7 +76,7 @@ PREORDER_TRAVERSE(global_table_callback_internal)
 
         int x = (i < threshold) ? c : f;
 
-        for (int j = i; j < min(i+x, numpairs); ++j) {
+        for (int j = i; j < MIN(i+x, numpairs); ++j) {
             int point = tree->nodes[node].point;
 
             size_t table_index = routing_tables[point].global_table_size;

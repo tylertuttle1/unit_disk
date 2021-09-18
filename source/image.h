@@ -262,13 +262,13 @@ draw_line(Image *image, int x0, int y0, int x1, int y1, u32 colour)
     bool is_steep = false;
     if (abs(x0 - x1) < abs(y0 - y1)) {
         is_steep = true;
-        swap(x0, y0);
-        swap(x1, y1);
+        myswap(x0, y0);
+        myswap(x1, y1);
     }
 
     if (x0 > x1) {
-        swap(x0, x1);
-        swap(y0, y1);
+        myswap(x0, x1);
+        myswap(y0, y1);
     }
 
     int dx = x1 - x0;
@@ -305,10 +305,10 @@ draw_line(Image *image, int x0, int y0, int x1, int y1, u32 colour)
 void
 draw_rectangle(Image *image, int min_x, int min_y, int max_x, int max_y, u32 colour)
 {
-    min_x = max(min_x, 0);
-    max_x = min(max_x, image->width);
-    min_y = max(min_y, 0);
-    max_y = min(max_y, image->height);
+    min_x = MAX(min_x, 0);
+    max_x = MIN(max_x, image->width);
+    min_y = MAX(min_y, 0);
+    max_y = MIN(max_y, image->height);
 
     u8 *row = (u8 *) image->pixels + min_y*image->stride + min_x*4;
     for (int y = min_y; y < max_y; ++y) {
@@ -323,10 +323,10 @@ draw_rectangle(Image *image, int min_x, int min_y, int max_x, int max_y, u32 col
 void
 draw_rectangle_outline(Image *image, int min_x, int min_y, int max_x, int max_y, u32 colour)
 {
-    min_x = max(min_x, 0);
-    max_x = min(max_x, image->width);
-    min_y = max(min_y, 0);
-    max_y = min(max_y, image->height);
+    min_x = MAX(min_x, 0);
+    max_x = MIN(max_x, image->width);
+    min_y = MAX(min_y, 0);
+    max_y = MIN(max_y, image->height);
 
     draw_line(image, min_x, min_y, min_x, max_y, colour);
     draw_line(image, min_x, min_y, max_x, min_y, colour);

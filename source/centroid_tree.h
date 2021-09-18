@@ -145,7 +145,7 @@ build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
         result->point = -1;
         result->representative = tree->nodes[result->left].representative;
         result->size = tree->nodes[result->left].size + tree->nodes[result->right].size;
-        result->height = 1 + max(tree->nodes[result->left].height, tree->nodes[result->right].height);
+        result->height = 1 + MAX(tree->nodes[result->left].height, tree->nodes[result->right].height);
     }
 
     // assert(result->left  >= 0);
