@@ -11,7 +11,6 @@ ALLOCATE_MEMORY(win32_allocate_memory)
     void *result = VirtualAlloc(0, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     return result;
 }
-
 FREE_MEMORY(win32_free_memory)
 {
     VirtualFree(ptr, 0, MEM_RELEASE);
