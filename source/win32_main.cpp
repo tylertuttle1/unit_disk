@@ -1,10 +1,7 @@
 // #include <windows.h>
-
-#include "basic.h"
-#include "platform.h"
-#include "start.cpp"
-
 #include "win32_defines.h"
+
+#include "start.cpp"
 
 ALLOCATE_MEMORY(win32_allocate_memory)
 {
