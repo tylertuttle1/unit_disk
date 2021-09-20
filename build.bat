@@ -22,8 +22,8 @@ rem cl %ccflags% /c "..\tracy-0.7.8\TracyClient.cpp" /Fo:tracy.obj
 cl %ccflags% ..\source\win32_main.cpp /Fe:%exename%.exe /link %ldflags% %libs%
 
 if %errorlevel% neq 0 goto :end
-%exename%.exe
-start out.bmp
+rem %exename%.exe
+rem start out.bmp
 rem start tree.bmp
 :end
 

@@ -209,7 +209,7 @@ start(int argc, char **argv)
     }
 
     u64 freq = get_clock_frequency();
-    u64 A, B, C, D, E, F, G;
+    u64 A, B, C, D, E, F, G, H;
     A = get_clock();
     Graph graph= build_unit_disk_graph(points, POINT_COUNT);
     B = get_clock();
@@ -260,12 +260,24 @@ start(int argc, char **argv)
 
     G = get_clock();
 
+    find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 10, 20);
+
+    H = get_clock();
+
     printf("time to build unit disk graph: %f ms\n", milliseconds(A, B, freq));
     printf("time to build minimum spanning tree: %f ms\n", milliseconds(B, C, freq));
     printf("time to build centroid tree: %f ms\n", milliseconds(C, D, freq));
     printf("time to build wspd: %f ms\n", milliseconds(D, E, freq));
     printf("time to run dijkstra: %f ms\n", milliseconds(E, F, freq));
-    printf("time to run build routing tables: %f ms\n", milliseconds(F, G, freq));
+    printf("time to build routing tables: %f ms\n", milliseconds(F, G, freq));
+    printf("time to find routing path: %f ms\n", milliseconds(G, H, freq));
+
+    {
+        v2 current_point = {2.97724199, 4.21830797};
+        v2 current_min   = {3.97724199, 4.21830797};
+        v2 test_point    = {2.30022192, 4.15866280};
+        printf("%d\n", less_than(test_point, current_min, current_point));
+    }
 
     Image image1 = create_image(512, 512);
     Image image2 = create_image(512, 512);

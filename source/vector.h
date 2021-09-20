@@ -151,6 +151,17 @@ static f32 distance(v2 a, v2 b);
 static f32 distance_squared(v2 a, v2 b);
 
 v2
+operator+(v2 a, v2 b)
+{
+    v2 result;
+
+    result.x = a.x + b.x;
+    result.y = a.y + b.y;
+
+    return result;
+}
+
+v2
 operator-(v2 a, v2 b)
 {
     v2 result;
@@ -187,6 +198,40 @@ distance_squared(v2 a, v2 b)
 {
     f32 result = length_squared(b - a);
     return result;
+}
+
+internal f32
+ccw(v2 a, v2 b, v2 c)
+{
+    f32 result = (b.x - a.x)*(c.y - a.y) - (b.y - a.y)*(c.x - a.x);
+    return result;
+}
+
+internal bool
+less_than(v2 a, v2 b, v2 c)
+{
+    if (a.y == c.y && b.y == c.y) {
+        if (a.x >= c.x || b.x >= c.x) {
+            return a.x > b.x;
+        } else {
+            return a.x < b.x;
+        }
+    }
+
+    if (a.y > c.y && b.y < c.y)
+        return true;
+
+    if (a.y < c.y && b.y > c.y)
+        return false;
+
+    f32 det = ccw(c, b, a);
+    if (det < 0.0f) {
+        return true;
+    } else if (det > 0.0f) {
+        return false;
+    } else {
+        return distance_squared(a, c) > distance_squared(b, c);
+    }
 }
 
 #define VECTOR_H

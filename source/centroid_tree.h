@@ -13,6 +13,7 @@ struct CentroidTreeNode
     int right;
 
     int height;
+    int depth;
 
     // if this node is not a leaf, this is
     // the edge that this node represents
@@ -44,6 +45,66 @@ bool
 is_single_vertex(Graph *tree, int root)
 {
     return tree->degrees[root] == 0;
+}
+
+
+#define PREORDER_TRAVERSE(name) void name(CentroidTree *tree, void *data, int node)
+typedef PREORDER_TRAVERSE(TraverseCallback);
+
+internal void
+preorder_traverse_recursive(CentroidTree *tree, int t, TraverseCallback *callback, void *callback_data)
+{
+    if (t != -1) {
+        callback(tree, callback_data, t);
+        preorder_traverse_recursive(tree, tree->nodes[t].left, callback, callback_data);
+        preorder_traverse_recursive(tree, tree->nodes[t].right, callback, callback_data);
+    }
+}
+
+internal void
+postorder_traverse_recursive(CentroidTree *tree, int t, TraverseCallback *callback, void *callback_data)
+{
+    if (t != -1) {
+        preorder_traverse_recursive(tree, tree->nodes[t].left, callback, callback_data);
+        preorder_traverse_recursive(tree, tree->nodes[t].right, callback, callback_data);
+        callback(tree, callback_data, t);
+    }
+}
+
+internal void
+preorder_traverse_iterative(CentroidTree *tree, int t, TraverseCallback *callback, void *callback_data)
+{
+    int p;
+
+#define LLINK(t) tree->nodes[t].left
+#define RLINK(t) tree->nodes[t].right
+#define VISIT(t) callback(tree, callback_data, t)
+
+    while (t != -1) {
+        if (LLINK(t) == -1) {
+            VISIT(t);
+            t = RLINK(t);
+        } else {
+            p = LLINK(t);
+
+            while (RLINK(p) >= 0 && RLINK(p) != t) {
+                p = RLINK(p);
+            }
+
+            if (RLINK(p) == -1) {
+                VISIT(t);
+                RLINK(p) = t;
+                t = LLINK(t);
+            } else {
+                RLINK(p) = -1;
+                t = RLINK(t);
+            }
+        }
+    }
+
+#undef LLINK
+#undef RLINK
+#undef VISIT
 }
 
 DFS_CALLBACK(compute_sizes)
@@ -119,6 +180,16 @@ find_centroid_edge(Graph *tree, int root)
     }
 }
 
+internal void
+set_depths(CentroidTree *tree, int node, int current_depth)
+{
+    if (node != -1) {
+        tree->nodes[node].depth = current_depth;
+        set_depths(tree, tree->nodes[node].left, current_depth+1);
+        set_depths(tree, tree->nodes[node].right, current_depth+1);
+    }
+}
+
 int
 build_centroid_tree_internal(CentroidTree *tree, int start_vertex)
 {
@@ -179,6 +250,7 @@ build_centroid_tree(Graph *mst)
     build_centroid_tree_internal(&result, 0);
 
     result.height = result.nodes[0].height;
+    set_depths(&result, 0, 0);
 
     free_memory(mst->adjacency_list);
     free_memory(mst->degrees);
@@ -189,53 +261,16 @@ build_centroid_tree(Graph *mst)
     return result;
 }
 
-#define PREORDER_TRAVERSE(name) void name(CentroidTree *tree, void *data, int node)
-typedef PREORDER_TRAVERSE(TraverseCallback);
-
-internal void
-preorder_traverse_recursive(CentroidTree *tree, int t, TraverseCallback *callback, void *callback_data)
+internal int
+get_level(CentroidTree *centroid_tree, int point)
 {
-    if (t != -1) {
-        callback(tree, callback_data, t);
-        preorder_traverse_recursive(tree, tree->nodes[t].left, callback, callback_data);
-        preorder_traverse_recursive(tree, tree->nodes[t].right, callback, callback_data);
-    }
-}
-
-internal void
-preorder_traverse_iterative(CentroidTree *tree, int t, TraverseCallback *callback, void *callback_data)
-{
-    int p;
-
-#define LLINK(t) tree->nodes[t].left
-#define RLINK(t) tree->nodes[t].right
-#define VISIT(t) callback(tree, callback_data, t)
-
-    while (t != -1) {
-        if (LLINK(t) == -1) {
-            VISIT(t);
-            t = RLINK(t);
-        } else {
-            p = LLINK(t);
-
-            while (RLINK(p) >= 0 && RLINK(p) != t) {
-                p = RLINK(p);
-            }
-
-            if (RLINK(p) == -1) {
-                VISIT(t);
-                RLINK(p) = t;
-                t = LLINK(t);
-            } else {
-                RLINK(p) = -1;
-                t = RLINK(t);
-            }
+    for (int index = 0; index < centroid_tree->max_node_count; ++index) {
+        if (centroid_tree->nodes[index].point == point) {
+            return centroid_tree->nodes[index].depth;
         }
     }
 
-#undef LLINK
-#undef RLINK
-#undef VISIT
+    return -1;
 }
 
 #endif

@@ -36,6 +36,7 @@ struct Header
     // @TODO: how big does this actually need to be? dynamically allocate
     // once we have a real bound on it?
     int start_site;
+    int last_site;
     int current_target;
     int target_stack[4096];
     int sp;
@@ -50,11 +51,11 @@ PREORDER_TRAVERSE(local_table_callback)
         int qi = tree->nodes[node].edge.qi;
 
         routing_tables[pi].local_table[routing_tables[pi].local_table_size].neighbour_id = qi;
-        routing_tables[pi].local_table[routing_tables[pi].local_table_size].level = tree->nodes[node].height;
+        routing_tables[pi].local_table[routing_tables[pi].local_table_size].level = tree->nodes[node].depth;
         ++routing_tables[pi].local_table_size;
 
         routing_tables[qi].local_table[routing_tables[qi].local_table_size].neighbour_id = pi;
-        routing_tables[qi].local_table[routing_tables[qi].local_table_size].level = tree->nodes[node].height;
+        routing_tables[qi].local_table[routing_tables[qi].local_table_size].level = tree->nodes[node].depth;
         ++routing_tables[qi].local_table_size;
     }
 }
@@ -114,7 +115,7 @@ PREORDER_TRAVERSE(global_table_callback)
     for (int i = 0; i < wspd->pair_count; ++i) {
         if (wspd->pairs[i].a == node || wspd->pairs[i].b == node) {
             pairs[pair_count].a = node;
-            pairs[pair_count].b = (wspd->pairs[i].a == node) ? wspd->pairs[i].a : wspd->pairs[i].b;
+            pairs[pair_count].b = (wspd->pairs[i].a == node) ? wspd->pairs[i].b : wspd->pairs[i].a;
 
             ++pair_count;
             ++total_pair_count;
@@ -147,6 +148,8 @@ build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_
     for (size_t i = 0; i < mst->vertex_count; ++i) {
         routing_tables[i].global_table = (GlobalTableEntry *) allocate_memory(sizeof(GlobalTableEntry) * MAX_GLOBAL_TABLE_SIZE);
         routing_tables[i].global_table_size = 0;
+
+        routing_tables[i].level = get_level(centroid_tree, i);
     }
 
     umm *global_data = (umm *) allocate_memory(sizeof(*global_data) * 2);
@@ -161,6 +164,142 @@ build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_
 }
 
 
+PREORDER_TRAVERSE(pair_contains_callback)
+{
+    int target = *(int *) data;
+    int *found = (int *) data + 1;
+    CentroidTreeNode tree_node = tree->nodes[node];
+
+    if (tree_node.point == target) {
+        *found = 1;
+    }
+}
+
+internal bool
+pair_contains(CentroidTree *centroid_tree, WellSeparatedPair pair, int point)
+{
+    int *callback_data = (int *) allocate_memory(sizeof(*callback_data) * 2);
+    callback_data[0] = point;
+    callback_data[1] = 0;
+    preorder_traverse_iterative(centroid_tree, pair.a, pair_contains_callback, callback_data);
+    if (callback_data[1]) {
+        return true;
+    } else {
+        preorder_traverse_iterative(centroid_tree, pair.b, pair_contains_callback, callback_data);
+        if (callback_data[1]) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+internal int
+forward_message(int site, Header *header, RoutingTable *routing_tables, Graph *unit_disk_graph, CentroidTree *centroid_tree, v2 *points)
+{
+    int target = header->current_target;
+
+    if (site == target) {
+        if (header->sp) {
+            --header->sp;
+            header->current_target = header->target_stack[header->sp];
+
+            return site;
+        } else {
+            return site;
+        }
+    } else {
+        RoutingTable table = routing_tables[site];
+
+        GlobalTableEntry entry;
+        bool found = false;
+        for (int i = 0; i < routing_tables->global_table_size; ++i) {
+            entry = routing_tables->global_table[i];
+            if (pair_contains(centroid_tree, entry.pair, header->current_target)) {
+                found = true;
+                break;
+            }
+        }
+
+        if (found) {
+            header->start_site = -1;
+            if (points_are_adjacent(unit_disk_graph, site, target)) {
+                header->last_site = site;
+                return target;
+            } else {
+                // @NOTE: push header->current_target on to the stack
+                header->target_stack[header->sp] = header->current_target;
+                ++header->sp;
+                header->current_target = entry.midpoint;
+                return site;
+            }
+        } else {
+            if (header->start_site == -1) {
+                header->start_site = site;
+                header->current_level = table.level;
+            }
+
+            // @TODO: make this the next neighbour of site in clockwise order
+            int r = -1;
+
+            v2 current_point = points[site];
+            v2 current_min;
+            int min_id;
+            for (min_id = 0; min_id < table.local_table_size; ++min_id) {
+                if (table.local_table[min_id].level <= header->current_level) {
+                    current_min = points[table.local_table[min_id].neighbour_id];
+                    break;
+                }
+            }
+            for (int i = min_id+1; i < table.local_table_size; ++i) {
+                v2 test_point = points[table.local_table[i].neighbour_id];
+                if ((table.local_table[i].level <= header->current_level) && less_than(test_point, current_min, current_point)) {
+                    current_min = test_point;
+                    min_id = table.local_table[i].neighbour_id;
+                }
+            }
+
+            if (header->last_site >= 0) {
+                v2 current_min2;
+                int min_id2 = -1;
+
+                for (min_id2 = 0; min_id2 < table.local_table_size; ++min_id2) {
+                    if (table.local_table[min_id2].level <= header->current_level
+                        && less_than(points[header->last_site], points[table.local_table[min_id2].neighbour_id], current_point))
+                    {
+                        current_min2 = points[table.local_table[min_id2].neighbour_id];
+                        break;
+                    }
+                }
+                for (int i = 0; i < table.local_table_size; ++i) {
+                    v2 test_point = points[table.local_table[i].neighbour_id];
+                    if ((table.local_table[i].level <= header->current_level)
+                        && less_than(points[header->last_site], test_point, current_point)
+                        && less_than(test_point, current_min2, current_point))
+                    {
+                        current_min2 = test_point;
+                        min_id2 = table.local_table[i].neighbour_id;
+                    }
+                }
+
+                if (min_id != min_id2) {
+                    r = min_id2;
+                }
+            } else {
+                r = min_id;
+            }
+
+            if (r == -1) {
+                --header->current_level;
+                return site;
+            } else {
+                header->last_site = site;
+                return table.local_table[r].neighbour_id;
+            }
+        }
+    }
+}
+
 internal void
 find_routing_path(v2 *points,
                   size_t point_count,
@@ -173,102 +312,25 @@ find_routing_path(v2 *points,
                   int target)
 {
     Header header = {0};
+
+    header.initialized = 1;
+    header.current_level = -1;
+    header.start_site = -1;
+    header.last_site = -1;
+    header.current_target = target;
+    header.sp = 0;
+
+    int last_site = -1;
     int current_site = start;
-
     while (current_site != target) {
-        if (current_site == header.current_target) {
-            // pop from the stack
-            header.sp = header.sp - 1;
-            header.current_target = header.target_stack[header.sp];
-        } else {
-            RoutingTable routing_table = routing_tables[current_site];
-
-            GlobalTableEntry entry;
-            bool found = false;
-            for (int i = 0; i < routing_table.global_table_size; ++i) {
-                entry = routing_table.global_table[i];
-                // @TODO: check if header.current_target is in entry.pair
-            }
-
-            if (found) {
-                header.start_site = -1;
-
-                if (points_are_adjacent(unit_disk_graph, current_site, header.current_target)) {
-                    current_site = header.current_target;
-                } else {
-                    header.target_stack[header.sp++] = header.current_target;
-                    header.current_target = entry.midpoint;
-                }
-            } else {
-                if (header.start_site == -1) {
-                    header.start_site = current_site;
-                    header.current_level = routing_table.level;
-                }
-
-                // @TODO r is the next neighbour of current_site
-                int r = -1;
-
-                if (r == -1) {
-                    header.current_level = header.current_level - 1;
-                } else {
-                    current_site = r;
-                }
-            }
+        if (current_site != last_site) {
+            printf("%d\n", current_site);
+            last_site = current_site;
         }
+        current_site = forward_message(current_site, &header, routing_tables, unit_disk_graph, centroid_tree, points);
     }
+    printf("%d\n", current_site);
 }
-
-#if 0
-internal bool
-pair_contains(WSPD *wspd, WellSeparatedPair pair, int point)
-{
-    return false;
-}
-
-internal int
-get_level(CentroidTree *centroid_tree, int point)
-{
-    return 0;
-}
-
-internal void
-find_routing_path(v2 *points, int point_count, WSPD *wspd, RoutingTable *tables, int start, int destination, CentroidTree *centroid_tree)
-{
-    Header routing_header = {0};
-
-    int current_point = start;
-
-    while (current_point != destination) {
-        RoutingTable routing_table = tables[current_point];
-
-        // @NOTE: global routing
-        for (int i = 0; i < routing_table.global_table_size; ++i) {
-            GlobalTableEntry entry = routing_table.global_table[i];
-            if (pair_contains(wspd, entry.pair, destination)) {
-                if (distance_squared(points[current_point], points[destination]) <= 1.0f) {
-                    current_point = destination;
-                } else {
-                    routing_header.target_stack[routing_header.sp++] = destination;
-                    destination = entry.midpoint;
-                }
-            }
-        }
-
-        if (!routing_header.initialized) {
-            routing_header.initialized = current_point;
-            routing_header.current_level = get_level(centroid_tree, current_point);
-        }
-
-        // @TODO: find the next neighbour of `current_point` in the local table
-
-        // if (found_r) {
-        //     current_point = r;
-        // } else {
-        //     ++routing_header.level;
-        // }
-    }
-}
-#endif
 
 #define ROUTING_H
 #endif
