@@ -272,7 +272,20 @@ start(int argc, char **argv)
 
     G = get_clock();
 
-    find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 10, 20);
+    {
+        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 10, 20);
+        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 12, 52);
+        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 1, 2);
+        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 100, 200);
+        int source = POINT_COUNT - 2;
+        int target = POINT_COUNT - 1;
+        printf("%d\n", points_are_adjacent(&graph, source, target));
+        printf("{%.3f, %.3f} {%.3f, %.3f}\n", points[source].x, points[source].y, points[target].x, points[target].y);
+        printf("%.3f\n", distance(points[source], points[target]));
+        printf("%d\n", find_midpoint(&dijkstra_results[source], source, target));
+        printf("%d\n", find_midpoint(&dijkstra_results[target], target, source));
+        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, POINT_COUNT-2, POINT_COUNT-1);
+    }
 
     H = get_clock();
 

@@ -391,7 +391,7 @@ find_midpoint(DijkstraResult *dijkstra_result, int source, int u)
                 midpoint = u;
             }
 
-            midpoint_found = true;
+            return midpoint;
         }
 
         u = dijkstra_result->prev[u];

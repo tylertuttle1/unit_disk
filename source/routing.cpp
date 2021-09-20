@@ -33,10 +33,11 @@ PREORDER_TRAVERSE(global_table_callback_internal)
         int threshold = alpha * c;
 
         int x = (i < threshold) ? c : f;
+        int point = tree->nodes[node].point;
+
+        printf("\tadding %d pairs to %d (%d):\t", MIN(i+x, numpairs) - i, tree->nodes[node].point, routing_tables[point].global_table_size);
 
         for (int j = i; j < MIN(i+x, numpairs); ++j) {
-            int point = tree->nodes[node].point;
-
             size_t table_index = routing_tables[point].global_table_size;
             routing_tables[point].global_table[table_index].pair = pairs[j];
 
@@ -47,7 +48,11 @@ PREORDER_TRAVERSE(global_table_callback_internal)
             routing_tables[point].global_table[table_index].midpoint = midpoint;
 
             routing_tables[point].global_table_size += 1;
+            WellSeparatedPair pair = routing_tables[point].global_table[table_index].pair;
+            printf("(%d, %d) ", pair.a, pair.b);
         }
+
+        printf("new size of global table is %d\n", routing_tables[point].global_table_size);
     }
 }
 
@@ -69,6 +74,7 @@ PREORDER_TRAVERSE(global_table_callback)
         if (wspd->pairs[i].a == node || wspd->pairs[i].b == node) {
             pairs[pair_count].a = node;
             pairs[pair_count].b = (wspd->pairs[i].a == node) ? wspd->pairs[i].b : wspd->pairs[i].a;
+            assert(pairs[pair_count].a != pairs[pair_count].b);
 
             ++pair_count;
             ++total_pair_count;
@@ -84,6 +90,7 @@ PREORDER_TRAVERSE(global_table_callback)
         callback_data[4] = (umm) routing_tables;
         callback_data[5] = (umm) unit_disk_graph;
 
+        printf("distributing %d pairs in subtree of %d (%d leaves)\n", pair_count, node, tree->nodes[node].size);
         preorder_traverse_iterative(tree, node, global_table_callback_internal, callback_data);
     }
 }
@@ -118,12 +125,11 @@ build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_
         }
     }
 
-    umm *global_data = (umm *) allocate_memory(sizeof(*global_data) * 2);
+    umm global_data[3];
     global_data[0] = (umm) routing_tables;
     global_data[1] = (umm) wspd;
     global_data[2] = (umm) unit_disk_graph;
     preorder_traverse_recursive(centroid_tree, 0, global_table_callback, global_data);
-    free_memory(global_data);
 
     printf("found %d pairs, wanted %d pairs\n", total_pair_count / 2, wspd->pair_count);
     return routing_tables;
@@ -161,15 +167,26 @@ pair_contains(CentroidTree *centroid_tree, WellSeparatedPair pair, int point)
     return false;
 }
 
+#if 1
+#define debug_log(...) printf(__VA_ARGS__)
+#else
+#define debug_log(...)
+#endif
+
 internal int
 forward_message(int site, Header *header, RoutingTable *routing_tables, Graph *unit_disk_graph, CentroidTree *centroid_tree, v2 *points)
 {
     int target = header->current_target;
 
+    persistent int testy = 100;
+    // if (testy++ < 30)
+        debug_log("current site: %d, target: %d\t", site, target);
+
     if (site == target) {
         if (header->sp) {
             --header->sp;
             header->current_target = header->target_stack[header->sp];
+            debug_log("popping %d from the stack(%d) and making it the new target\n", header->current_target, header->sp);
 
             return site;
         } else {
@@ -180,30 +197,37 @@ forward_message(int site, Header *header, RoutingTable *routing_tables, Graph *u
 
         GlobalTableEntry entry;
         bool found = false;
-        for (int i = 0; i < routing_tables->global_table_size; ++i) {
-            entry = routing_tables->global_table[i];
+        for (int i = 0; i < table.global_table_size; ++i) {
+            entry = table.global_table[i];
             if (pair_contains(centroid_tree, entry.pair, header->current_target)) {
-                printf("found!\n");
+                // debug_log("found!\n");
                 found = true;
                 break;
             }
         }
 
         if (found) {
-            // printf("global routing step\n");
+            // debug_log("global routing step\n");
+            debug_log("pair (%d, %d) contains %d\t", entry.pair.a, entry.pair.b, target);
             header->start_site = -1;
             if (points_are_adjacent(unit_disk_graph, site, target)) {
-                header->last_site = site;
+                debug_log("there is an edge from %d to %d, moving there\n", site, target);
+                header->last_site = -1;
                 return target;
             } else {
                 // @NOTE: push header->current_target on to the stack
+                debug_log("pushing %d onto the stack, setting %d to new target\n", header->current_target, entry.midpoint);
+
                 header->target_stack[header->sp] = header->current_target;
                 ++header->sp;
                 header->current_target = entry.midpoint;
+                if (testy < 30) {
+                    // debug_log("setting new target to %d\n", entry.midpoint);
+                }
                 return site;
             }
         } else {
-            // printf("local routing step\n");
+            debug_log("local routing step\n");
             if (header->start_site == -1) {
                 header->start_site = site;
                 header->current_level = table.level;
@@ -216,6 +240,58 @@ forward_message(int site, Header *header, RoutingTable *routing_tables, Graph *u
             // in the minimum spanning tree
 #if 1
             if (header->last_site >= 0) {
+                // @NOTE we need a way to check if we're back at the start
+                // but first, let's just find the next neighbour
+
+                debug_log("we came from %d\n", header->last_site);
+                debug_log("we are at %d\n", site);
+
+                int last_site_index = 0;
+                while (header->last_site != table.local_table[last_site_index].neighbour_id
+                    && last_site_index < table.local_table_size)
+                {
+                    debug_log("our neighbour in the table is %d\n", table.local_table[last_site_index].neighbour_id);
+                    ++last_site_index;
+                }
+
+                if (last_site_index == table.local_table_size) {
+                    // we must have just done a global routing step
+                    // find 
+                }
+
+                // @NOTE: we always came from a neighbour in the EMST
+                // assert(last_site_index < table.local_table_size);
+
+                int next_site_index = (last_site_index + 1) % table.local_table_size;
+                while (header->current_level > table.local_table[next_site_index].level
+                    && next_site_index != last_site_index)
+                {
+                    next_site_index = (next_site_index + 1) % table.local_table_size;
+                    // debug_log("whee\n");
+                }
+
+                if (site == header->start_site) {
+                    persistent int test = 0;
+                    int first_next_site_index = 0;
+                    while (table.local_table[first_next_site_index].level < header->current_level && first_next_site_index < table.local_table_size) {
+                        ++first_next_site_index;
+                    }
+
+                    // if (test++ < 20) {
+                    //     debug_log("right back where we started (%d, %d, %d)\n", header->current_level, next_site_index, first_next_site_index);
+                    // }
+
+                    if (next_site_index == first_next_site_index) {
+                        // @NOTE: we've completed the euler tour
+                        --header->current_level;
+                        header->last_site = -1;
+                        return site;
+                    }
+                }
+
+                header->last_site = site;
+                return table.local_table[next_site_index].neighbour_id;
+#if 0
                 int first_next_site_index = -1;
                 if (site == header->start_site) {
                     first_next_site_index = 0;
@@ -241,6 +317,7 @@ forward_message(int site, Header *header, RoutingTable *routing_tables, Graph *u
                     header->last_site = site;
                     return table.local_table[next_site_index].neighbour_id;
                 }
+#endif
             } else {
                 int next_site_index = 0;
                 while (table.local_table[next_site_index].level < header->current_level && next_site_index < table.local_table_size) {
@@ -343,10 +420,12 @@ find_routing_path(v2 *points,
     while (current_site != target) {
     // for (int i = 0; i < 20; ++i) {
         if (current_site != last_site) {
-            printf("%d\n", current_site);
+            // debug_log("%d, %d\n", last_site, current_site);
+            if (last_site >= 0)
+                assert(points_are_adjacent(unit_disk_graph, current_site, last_site));
             last_site = current_site;
         }
         current_site = forward_message(current_site, &header, routing_tables, unit_disk_graph, centroid_tree, points);
     }
-    printf("%d\n", current_site);
+    debug_log("%d\n", current_site);
 }

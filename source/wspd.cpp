@@ -29,6 +29,7 @@ build_wspd(v2 *points, int point_count, CentroidTree *tree, int root, f32 separa
 
         if (distance(rep_a, rep_b) > (separation_ratio + 2) * MAX(a.size - 1, b.size - 1)) {
             assert(result.pair_count < result.max_pair_count);
+            assert(candidate.a != candidate.b);
             result.pairs[result.pair_count++] = candidate;
         } else if ((a.size > 1) || (b.size > 1)) {
             assert(queue_tail < (MAX_PAIRS - 1));
