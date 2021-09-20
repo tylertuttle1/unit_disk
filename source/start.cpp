@@ -264,7 +264,7 @@ start(int argc, char **argv)
     }
     global_dijkstra_results = dijkstra_results;
     F = get_clock();
-    RoutingTable *routing_tables = build_routing_tables(&graph, &mst, &centroid_tree, &wspd);
+    RoutingTable *routing_tables = build_routing_tables(&graph, &mst, &centroid_tree, &wspd, points);
 
     for (size_t i = 0; i < routing_tables[0].local_table_size; ++i) {
         printf("neighbour %d\tlevel %d\n", routing_tables[0].local_table[i].neighbour_id, routing_tables[0].local_table[i].level);
@@ -272,7 +272,7 @@ start(int argc, char **argv)
 
     G = get_clock();
 
-    // find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 10, 20);
+    find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 10, 20);
 
     H = get_clock();
 
@@ -287,7 +287,8 @@ start(int argc, char **argv)
     {
         v2 current_point = {2.97724199, 4.21830797};
         v2 current_min   = {3.97724199, 4.21830797};
-        v2 test_point    = {2.30022192, 4.15866280};
+        v2 test_point    = {3.30022192, 4.21832797};
+        // v2 test_point    = {2.30022192, 4.15866280};
         printf("%d\n", less_than(test_point, current_min, current_point));
     }
 

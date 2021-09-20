@@ -89,7 +89,7 @@ PREORDER_TRAVERSE(global_table_callback)
 }
 
 internal RoutingTable *
-build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_tree, WSPD *wspd)
+build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_tree, WSPD *wspd, v2 *points)
 {
     RoutingTable *routing_tables = (RoutingTable *) allocate_memory(sizeof(*routing_tables) * mst->vertex_count);
     preorder_traverse_iterative(centroid_tree, 0, local_table_callback, routing_tables);
@@ -101,6 +101,21 @@ build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_
         routing_tables[i].global_table_size = 0;
 
         routing_tables[i].level = get_level(centroid_tree, i);
+
+        LocalTableEntry *local_table = routing_tables[i].local_table;
+        for (size_t j = 1; j < routing_tables[i].local_table_size; ++j) {
+            v2 c = points[i];
+
+            size_t k = j;
+            v2 a = points[local_table[k].neighbour_id];
+            v2 b = points[local_table[k-1].neighbour_id];
+            while (k > 0 && less_than(a, b, c)) {
+                myswap(routing_tables[i].local_table[k-1], routing_tables[i].local_table[k]);
+                --k;
+                a = points[local_table[k].neighbour_id];
+                b = points[local_table[k-1].neighbour_id];
+            }
+        }
     }
 
     umm *global_data = (umm *) allocate_memory(sizeof(*global_data) * 2);

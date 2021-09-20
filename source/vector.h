@@ -205,26 +205,34 @@ ccw(v2 a, v2 b, v2 c)
 internal bool
 less_than(v2 a, v2 b, v2 c)
 {
-    if (a.y == c.y && b.y == c.y) {
-        if (a.x >= c.x || b.x >= c.x) {
-            return a.x > b.x;
+    v2 u = a - c;
+    v2 v = b - c;
+
+    if (u.y == 0 && v.y == 0) {
+        if (u.x < 0 || v.x < 0) {
+            return u.x > v.x;
         } else {
-            return a.x < b.x;
+            return u.x < v.x;
         }
     }
 
-    if (a.y > c.y && b.y < c.y)
+    if (u.y >= 0 && v.y < 0)
         return true;
 
-    if (a.y < c.y && b.y > c.y)
+    if (u.y < 0 && v.y >= 0)
         return false;
 
-    f32 det = ccw(c, b, a);
-    if (det < 0.0f) {
+    // at this point, we know that u and v are on the same side of the x-axis
+    // therefore, the angle between them is at most pi
+
+    f32 det = ccw(c, a, b);
+    if (det > 0.0f) {
         return true;
-    } else if (det > 0.0f) {
+    } else if (det < -0.0f) {
         return false;
     } else {
-        return distance_squared(a, c) > distance_squared(b, c);
+        // a and b are in the same direction, so just compare their distances.
+        // closer points are considered smaller
+        return distance_squared(c, a) < distance_squared(c, b);
     }
 }
