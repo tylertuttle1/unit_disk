@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <math.h>
 
 #include "basic.h"
 #include "platform.h"
@@ -207,12 +206,12 @@ start(int argc, char **argv)
         scale_x = scale;
         scale_y = scale;
     }
-    printf("scale: %f\n", scale);
+    // printf("scale: %f\n", scale);
 
     // TracyMessageL("testy ^:)");
 
     RNG rng;
-    seed_rng(&rng, 0, 0);
+    seed_rng(&rng, 1234, 5678);
 
     v2 points[POINT_COUNT] = {};
     for (int i = 0; i < POINT_COUNT; ++i) {
@@ -256,7 +255,7 @@ start(int argc, char **argv)
     }
 
     D = get_clock();
-    WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 0.05);
+    WSPD wspd = build_wspd(points, POINT_COUNT, &centroid_tree, 0, 0.05f);
     E = get_clock();
     DijkstraResult dijkstra_results[POINT_COUNT];
     for (int i = 0; i < POINT_COUNT; ++i) {
@@ -266,25 +265,28 @@ start(int argc, char **argv)
     F = get_clock();
     RoutingTable *routing_tables = build_routing_tables(&graph, &mst, &centroid_tree, &wspd, points);
 
-    for (size_t i = 0; i < routing_tables[0].local_table_size; ++i) {
-        printf("neighbour %d\tlevel %d\n", routing_tables[0].local_table[i].neighbour_id, routing_tables[0].local_table[i].level);
-    }
-
     G = get_clock();
 
     {
-        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 10, 20);
-        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 12, 52);
-        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 1, 2);
-        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 100, 200);
-        int source = POINT_COUNT - 2;
-        int target = POINT_COUNT - 1;
-        printf("%d\n", points_are_adjacent(&graph, source, target));
-        printf("{%.3f, %.3f} {%.3f, %.3f}\n", points[source].x, points[source].y, points[target].x, points[target].y);
-        printf("%.3f\n", distance(points[source], points[target]));
-        printf("%d\n", find_midpoint(&dijkstra_results[source], source, target));
-        printf("%d\n", find_midpoint(&dijkstra_results[target], target, source));
-        find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, POINT_COUNT-2, POINT_COUNT-1);
+        int test_cases[][2] = {
+            {0, 1},
+            {POINT_COUNT-2, POINT_COUNT-1},
+            {1, 68}
+        };
+
+        for (size_t i = 0; i < arraycount(test_cases); ++i) {
+            int source = test_cases[i][0];
+            int target = test_cases[i][1];
+            printf("ROUTING FROM %d to %d\n", source, target);
+            printf("%d\n", points_are_adjacent(&graph, source, target));
+            printf("{%.3f, %.3f} {%.3f, %.3f}\n", points[source].x, points[source].y, points[target].x, points[target].y);
+            printf("%.3f\n", distance(points[source], points[target]));
+            f32 routing_distance = find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, source, target);
+            f32 shortest_path = dijkstra_results[source].dist[target];
+            printf("routing path: %.3f\n", routing_distance);
+            printf("shortest path: %.3f\n", shortest_path);
+            printf("routing ratio: %.3f\n\n\n", routing_distance / shortest_path);
+        }
     }
 
     H = get_clock();

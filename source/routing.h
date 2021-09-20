@@ -45,7 +45,7 @@ PREORDER_TRAVERSE(pair_contains_callback);
 internal RoutingTable *build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_tree, WSPD *wspd);
 internal bool pair_contains(CentroidTree *centroid_tree, WellSeparatedPair pair, int point);
 internal int forward_message(int site, Header *header, RoutingTable *routing_tables, Graph *unit_disk_graph, CentroidTree *centroid_tree, v2 *points);
-internal void find_routing_path(v2 *points,
+internal f32 find_routing_path(v2 *points,
                   size_t point_count,
                   Graph *unit_disk_graph,
                   Graph *mst,

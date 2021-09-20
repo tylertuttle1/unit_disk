@@ -35,7 +35,7 @@ PREORDER_TRAVERSE(global_table_callback_internal)
         int x = (i < threshold) ? c : f;
         int point = tree->nodes[node].point;
 
-        printf("\tadding %d pairs to %d (%d):\t", MIN(i+x, numpairs) - i, tree->nodes[node].point, routing_tables[point].global_table_size);
+        // printf("\tadding %d pairs to %d (%d):\t", MIN(i+x, numpairs) - i, tree->nodes[node].point, routing_tables[point].global_table_size);
 
         for (int j = i; j < MIN(i+x, numpairs); ++j) {
             size_t table_index = routing_tables[point].global_table_size;
@@ -49,10 +49,10 @@ PREORDER_TRAVERSE(global_table_callback_internal)
 
             routing_tables[point].global_table_size += 1;
             WellSeparatedPair pair = routing_tables[point].global_table[table_index].pair;
-            printf("(%d, %d) ", pair.a, pair.b);
+            // printf("(%d, %d) ", pair.a, pair.b);
         }
 
-        printf("new size of global table is %d\n", routing_tables[point].global_table_size);
+        // printf("new size of global table is %d\n", routing_tables[point].global_table_size);
     }
 }
 
@@ -90,7 +90,7 @@ PREORDER_TRAVERSE(global_table_callback)
         callback_data[4] = (umm) routing_tables;
         callback_data[5] = (umm) unit_disk_graph;
 
-        printf("distributing %d pairs in subtree of %d (%d leaves)\n", pair_count, node, tree->nodes[node].size);
+        // printf("distributing %d pairs in subtree of %d (%d leaves)\n", pair_count, node, tree->nodes[node].size);
         preorder_traverse_iterative(tree, node, global_table_callback_internal, callback_data);
     }
 }
@@ -131,7 +131,7 @@ build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_
     global_data[2] = (umm) unit_disk_graph;
     preorder_traverse_recursive(centroid_tree, 0, global_table_callback, global_data);
 
-    printf("found %d pairs, wanted %d pairs\n", total_pair_count / 2, wspd->pair_count);
+    // printf("found %d pairs, wanted %d pairs\n", total_pair_count / 2, wspd->pair_count);
     return routing_tables;
 }
 
@@ -167,7 +167,7 @@ pair_contains(CentroidTree *centroid_tree, WellSeparatedPair pair, int point)
     return false;
 }
 
-#if 1
+#if 0
 #define debug_log(...) printf(__VA_ARGS__)
 #else
 #define debug_log(...)
@@ -395,7 +395,7 @@ forward_message(int site, Header *header, RoutingTable *routing_tables, Graph *u
     }
 }
 
-internal void
+internal f32
 find_routing_path(v2 *points,
                   size_t point_count,
                   Graph *unit_disk_graph,
@@ -407,6 +407,8 @@ find_routing_path(v2 *points,
                   int target)
 {
     Header header = {0};
+
+    f32 total_distance = 0.0f;
 
     header.initialized = 1;
     header.current_level = -1;
@@ -420,12 +422,17 @@ find_routing_path(v2 *points,
     while (current_site != target) {
     // for (int i = 0; i < 20; ++i) {
         if (current_site != last_site) {
-            // debug_log("%d, %d\n", last_site, current_site);
-            if (last_site >= 0)
+            printf("%d -> ", current_site);
+            if (last_site >= 0) {
+                total_distance += distance(points[last_site], points[current_site]);
                 assert(points_are_adjacent(unit_disk_graph, current_site, last_site));
+            }
             last_site = current_site;
         }
         current_site = forward_message(current_site, &header, routing_tables, unit_disk_graph, centroid_tree, points);
     }
-    debug_log("%d\n", current_site);
+    printf("%d\n", current_site);
+
+    total_distance += distance(points[last_site], points[current_site]);
+    return total_distance;
 }
