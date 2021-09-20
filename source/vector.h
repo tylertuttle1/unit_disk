@@ -1,8 +1,3 @@
-#if !defined(VECTOR_H)
-
-#include "basic.h"
-#include "f32_math.h"
-
 union v2
 {
     struct
@@ -233,6 +228,3 @@ less_than(v2 a, v2 b, v2 c)
         return distance_squared(a, c) > distance_squared(b, c);
     }
 }
-
-#define VECTOR_H
-#endif

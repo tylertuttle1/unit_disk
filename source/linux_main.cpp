@@ -3,12 +3,9 @@
 // MAX AS MACROS SO YOU CAN'T USE THEM AS MACROS UNLESS YOU INCLUDE STDLIB.H
 // FIRST BEFORE YOU DEFINE THEM
 
-#include <stdlib.h>
 #include <time.h>
 #include <sys/mman.h>
 
-#include "basic.h"
-#include "platform.h"
 #include "start.cpp"
 
 struct LinuxMemoryBlock

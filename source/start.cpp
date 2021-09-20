@@ -8,19 +8,31 @@
 #error Compiler not supported!
 #endif
 
+#include <stdint.h>
+#include <stddef.h>
 #include <assert.h>
 #include <immintrin.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
+#include <math.h>
 
 #include "basic.h"
+#include "platform.h"
+#include "f32_math.h"
 #include "vector.h"
-#include "graph.h"
-#include "image.h"
 #include "rng.h"
+#include "image.h"
+#include "graph.h"
 #include "centroid_tree.h"
 #include "wspd.h"
 #include "routing.h"
+
+#include "image.cpp"
+#include "graph.cpp"
+#include "centroid_tree.cpp"
+#include "wspd.cpp"
+#include "routing.cpp"
 
 // #include "../tracy-0.7.8/Tracy.hpp"
 
@@ -260,7 +272,7 @@ start(int argc, char **argv)
 
     G = get_clock();
 
-    find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 10, 20);
+    // find_routing_path(points, POINT_COUNT, &graph, &mst, &centroid_tree, &wspd, routing_tables, 10, 20);
 
     H = get_clock();
 

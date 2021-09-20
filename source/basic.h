@@ -9,16 +9,6 @@
 // round floats to ints, lsb, msb, popcount, etc?
 // 
 
-#include <stdint.h>
-#include <stddef.h>
-
-#if COMPILER_MSVC == 1
-// #include <windows.h>
-// #undef min
-// #undef max
-#include "win32_defines.h"
-#endif
-
 typedef int8_t s8;
 typedef int16_t s16;
 typedef int32_t s32;
