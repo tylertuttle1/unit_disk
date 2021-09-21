@@ -8,7 +8,7 @@ build_wspd(v2 *points, int point_count, CentroidTree *tree, int root, f32 separa
     result.separation_ratio = separation_ratio;
 
     // @TODO: how many pairs do we actually need?
-#define MAX_PAIRS 10*65536
+#define MAX_PAIRS 65536
     result.pair_count = 0;
     result.max_pair_count = MAX_PAIRS;
     result.pairs = (WellSeparatedPair *) allocate_memory(MAX_PAIRS * sizeof(WellSeparatedPair));

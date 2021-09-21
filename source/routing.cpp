@@ -114,13 +114,16 @@ build_routing_tables(Graph *unit_disk_graph, Graph *mst, CentroidTree *centroid_
             v2 c = points[i];
 
             size_t k = j;
-            v2 a = points[local_table[k].neighbour_id];
-            v2 b = points[local_table[k-1].neighbour_id];
-            while (k > 0 && less_than(a, b, c)) {
+            while (k > 0) {
+                v2 a = points[local_table[k].neighbour_id];
+                v2 b = points[local_table[k-1].neighbour_id];
+
+                if (less_than(a, b, c)) {
+                    break;
+                }
+
                 myswap(routing_tables[i].local_table[k-1], routing_tables[i].local_table[k]);
                 --k;
-                a = points[local_table[k].neighbour_id];
-                b = points[local_table[k-1].neighbour_id];
             }
         }
     }
