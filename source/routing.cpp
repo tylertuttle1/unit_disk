@@ -267,7 +267,7 @@ forward_message(int site, Header *header, RoutingTable *routing_tables, Graph *u
 
                 int next_site_index = (last_site_index + 1) % table.local_table_size;
                 while (header->current_level > table.local_table[next_site_index].level
-                    && next_site_index != last_site_index)
+                       && next_site_index != last_site_index)
                 {
                     next_site_index = (next_site_index + 1) % table.local_table_size;
                     // debug_log("whee\n");

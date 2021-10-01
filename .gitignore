@@ -3,4 +3,5 @@ build/
 tracy/
 
 notes.txt
+*.swp
 *.sublime-workspace
